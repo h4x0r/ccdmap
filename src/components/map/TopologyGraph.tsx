@@ -118,11 +118,11 @@ export function TopologyGraph() {
     const rawNodes = toReactFlowNodes(apiNodes);
     const rawEdges = toReactFlowEdges(apiNodes);
 
-    // Apply dagre layout (graphviz-like algorithm)
+    // Apply force-directed layout to minimize edge crossings
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       rawNodes,
       rawEdges,
-      { direction: 'TB', rankSep: 120, nodeSep: 60 }
+      { width: 1400, height: 900, iterations: 400 }
     );
 
     return {
