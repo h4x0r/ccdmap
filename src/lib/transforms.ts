@@ -1,6 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 
 // Types matching the Concordium API structure
+// Note: Many numeric fields can be null from the API
 export interface ConcordiumNode {
   nodeName: string;
   nodeId: string;
@@ -8,9 +9,9 @@ export interface ConcordiumNode {
   client: string;
   peersCount: number;
   peersList: string[];
-  averagePing: number;
-  averageBytesPerSecondIn: number;
-  averageBytesPerSecondOut: number;
+  averagePing: number | null;
+  averageBytesPerSecondIn: number | null;
+  averageBytesPerSecondOut: number | null;
   bestBlock: string;
   bestBlockHeight: number;
   finalizedBlock: string;
@@ -20,9 +21,9 @@ export interface ConcordiumNode {
   finalizationCommitteeMember: boolean;
   consensusBakerId: number | null;
   uptime: number;
-  blockArrivePeriodEMA: number;
-  blockReceivePeriodEMA: number;
-  transactionsPerBlockEMA: number;
+  blockArrivePeriodEMA: number | null;
+  blockReceivePeriodEMA: number | null;
+  transactionsPerBlockEMA: number | null;
 }
 
 export type NodeHealth = 'healthy' | 'lagging' | 'issue';

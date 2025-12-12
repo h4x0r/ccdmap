@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -9,6 +9,7 @@ import {
   useNodesState,
   useEdgesState,
   type Node,
+  type Edge,
   type NodeProps,
   Handle,
   Position,
@@ -17,7 +18,7 @@ import '@xyflow/react/dist/style.css';
 
 import { useNodes } from '@/hooks/useNodes';
 import { useAppStore } from '@/hooks/useAppStore';
-import { toReactFlowNodes, toReactFlowEdges, type ConcordiumNodeData } from '@/lib/transforms';
+import { toReactFlowNodes, toReactFlowEdges, type ConcordiumNodeData, type ConcordiumNode } from '@/lib/transforms';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -117,8 +118,15 @@ export function TopologyGraph() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Update nodes when data changes
-  useMemo(() => {
+  // Get peer IDs for selected node
+  const selectedPeerIds = useMemo(() => {
+    if (!selectedNodeId || !apiNodes) return new Set<string>();
+    const selectedNode = apiNodes.find((n: ConcordiumNode) => n.nodeId === selectedNodeId);
+    return new Set(selectedNode?.peersList || []);
+  }, [selectedNodeId, apiNodes]);
+
+  // Update nodes and edges when data changes
+  useEffect(() => {
     if (initialNodes.length > 0) {
       setNodes(initialNodes);
       setEdges(initialEdges);
@@ -136,6 +144,26 @@ export function TopologyGraph() {
     selectNode(null);
   }, [selectNode]);
 
+  // Style edges - highlight those connected to selected node
+  const styledEdges = useMemo((): Edge[] => {
+    return edges.map((edge: Edge) => {
+      const isConnectedToSelected = Boolean(
+        selectedNodeId &&
+        (edge.source === selectedNodeId || edge.target === selectedNodeId)
+      );
+
+      return {
+        ...edge,
+        style: {
+          stroke: isConnectedToSelected ? '#3b82f6' : 'hsl(var(--muted-foreground))',
+          strokeWidth: isConnectedToSelected ? 2 : 1,
+          opacity: isConnectedToSelected ? 1 : 0.5,
+        },
+        animated: isConnectedToSelected,
+      };
+    });
+  }, [edges, selectedNodeId]);
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -146,8 +174,15 @@ export function TopologyGraph() {
         nodes={nodes.map((n) => ({
           ...n,
           selected: n.id === selectedNodeId,
+          style: {
+            opacity: selectedNodeId
+              ? n.id === selectedNodeId || selectedPeerIds.has(n.id)
+                ? 1
+                : 0.3
+              : 1,
+          },
         }))}
-        edges={edges}
+        edges={styledEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -157,7 +192,7 @@ export function TopologyGraph() {
         minZoom={0.1}
         maxZoom={2}
         defaultEdgeOptions={{
-          style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, opacity: 0.3 },
+          style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, opacity: 0.5 },
         }}
       >
         <Background color="hsl(var(--muted-foreground))" gap={20} size={1} />

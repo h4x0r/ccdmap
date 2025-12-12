@@ -23,10 +23,16 @@ function formatUptime(ms: number): string {
   return `${hours}h`;
 }
 
-function formatBytes(bytes: number): string {
+function formatBytes(bytes: number | null): string {
+  if (bytes === null || bytes === undefined) return 'N/A';
   if (bytes < 1024) return `${bytes} B/s`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB/s`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB/s`;
+}
+
+function formatNumber(value: number | null, decimals: number = 0, suffix: string = ''): string {
+  if (value === null || value === undefined) return 'N/A';
+  return `${value.toFixed(decimals)}${suffix}`;
 }
 
 interface SectionProps {
@@ -103,7 +109,7 @@ function NodeDetails({ node, maxHeight }: { node: ConcordiumNode; maxHeight: num
 
       <Section title="Connectivity" icon={<Wifi className="h-4 w-4" />}>
         <DetailRow label="Peers" value={node.peersCount} />
-        <DetailRow label="Avg Ping" value={`${node.averagePing.toFixed(0)}ms`} />
+        <DetailRow label="Avg Ping" value={formatNumber(node.averagePing, 0, 'ms')} />
         <DetailRow label="Bandwidth In" value={formatBytes(node.averageBytesPerSecondIn)} />
         <DetailRow label="Bandwidth Out" value={formatBytes(node.averageBytesPerSecondOut)} />
         {node.peersList.length > 0 && (
@@ -143,15 +149,15 @@ function NodeDetails({ node, maxHeight }: { node: ConcordiumNode; maxHeight: num
       <Section title="Performance" icon={<Gauge className="h-4 w-4" />} defaultOpen={false}>
         <DetailRow
           label="Block Arrive Period"
-          value={`${node.blockArrivePeriodEMA.toFixed(2)}s`}
+          value={formatNumber(node.blockArrivePeriodEMA, 2, 's')}
         />
         <DetailRow
           label="Block Receive Period"
-          value={`${node.blockReceivePeriodEMA.toFixed(2)}s`}
+          value={formatNumber(node.blockReceivePeriodEMA, 2, 's')}
         />
         <DetailRow
           label="Tx per Block"
-          value={node.transactionsPerBlockEMA.toFixed(2)}
+          value={formatNumber(node.transactionsPerBlockEMA, 2)}
         />
       </Section>
 
