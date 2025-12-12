@@ -38,11 +38,11 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
     issue: 'bg-red-500 border-red-600',
   }[nodeData.health];
 
-  // Dynamic size based on peer count (min 24px, max 56px)
-  const baseSize = 24;
-  const maxSize = 56;
-  const scaleFactor = Math.min(nodeData.peersCount / 20, 1); // Normalize to 0-1 (20 peers = max)
-  const size = Math.round(baseSize + (maxSize - baseSize) * scaleFactor);
+  // Dynamic size based on peer count (min 16px, max 80px) - dramatic scaling
+  const baseSize = 16;
+  const maxSize = 80;
+  const scaleFactor = Math.min(nodeData.peersCount / 15, 1); // Normalize to 0-1 (15 peers = max)
+  const size = Math.round(baseSize + (maxSize - baseSize) * Math.sqrt(scaleFactor)); // sqrt for emphasis on lower counts
 
   return (
     <TooltipProvider>
