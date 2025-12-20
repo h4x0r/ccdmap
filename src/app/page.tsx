@@ -1,10 +1,15 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useEffect } from 'react';
 import { useAppStore } from '@/hooks/useAppStore';
+import { useNetworkMetrics } from '@/hooks/useNodes';
+import { useMetricHistory, type MetricSnapshot } from '@/hooks/useMetricHistory';
+import { calculateNetworkPulse } from '@/lib/pulse';
 import { ViewToggle } from '@/components/map/ViewToggle';
 import { NodeDetailPanel } from '@/components/panels/NodeDetailPanel';
 import { MetricsBar } from '@/components/panels/MetricsBar';
+import { CommandHeader } from '@/components/dashboard/CommandHeader';
 
 // Dynamic imports for heavy map components
 const TopologyGraph = dynamic(
@@ -49,47 +54,63 @@ const GeographicMap = dynamic(
 
 export default function Home() {
   const { currentView, isPanelOpen } = useAppStore();
+  const { metrics: networkMetrics } = useNetworkMetrics();
+  const { history, addSnapshot } = useMetricHistory();
+
+  // Calculate pulse and create snapshot from network metrics
+  useEffect(() => {
+    if (!networkMetrics) return;
+
+    const pulse = calculateNetworkPulse({
+      finalizationTime: networkMetrics.maxFinalizationLag,
+      latency: 45, // TODO: Get from API when available
+      consensusRunning: Math.round((networkMetrics.consensusParticipation / 100) * networkMetrics.totalNodes),
+      totalNodes: networkMetrics.totalNodes,
+    });
+
+    const snapshot: MetricSnapshot = {
+      timestamp: Date.now(),
+      nodes: networkMetrics.totalNodes,
+      finalizationTime: networkMetrics.maxFinalizationLag,
+      latency: 45, // Placeholder
+      packets: 1200000, // Placeholder
+      consensus: networkMetrics.consensusParticipation,
+      pulse,
+    };
+
+    addSnapshot(snapshot);
+  }, [networkMetrics, addSnapshot]);
+
+  // Get current metrics or defaults
+  const currentMetrics: MetricSnapshot = history.length > 0
+    ? history[history.length - 1]
+    : {
+        timestamp: Date.now(),
+        nodes: networkMetrics?.totalNodes ?? 0,
+        finalizationTime: networkMetrics?.maxFinalizationLag ?? 0,
+        latency: 45,
+        packets: 1200000,
+        consensus: networkMetrics?.consensusParticipation ?? 0,
+        pulse: 94,
+      };
 
   return (
     <main className="h-screen w-screen flex flex-col overflow-hidden bg-background cyber-grid scan-lines">
-      {/* Header */}
-      <header className="h-16 header-glow flex items-center justify-between px-6 shrink-0 bg-background/80 backdrop-blur-sm z-10">
+      {/* LCARS Command Header with Network Pulse */}
+      <CommandHeader metrics={currentMetrics} history={history} />
+
+      {/* View Toggle Bar */}
+      <div className="h-12 flex items-center justify-between px-6 shrink-0 bg-background/80 backdrop-blur-sm border-b border-[var(--lcars-cyan)]/20">
         <div className="flex items-center gap-4">
-          {/* Logo with glow effect */}
-          <div className="relative logo-glow">
-            <svg
-              width="36"
-              height="36"
-              viewBox="0 0 170 169"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M25.9077 84.5718C25.9077 116.886 52.3315 143.06 84.9828 143.06C93.7219 143.06 102.014 141.105 109.48 137.743V165.186C101.739 167.485 93.5155 168.754 84.9828 168.754C38.053 168.754 0 131.088 0 84.5718C0 38.0553 38.053 0.389404 85.0172 0.389404C93.5499 0.389404 101.739 1.65866 109.514 3.95703V31.4003C102.048 28.0042 93.7563 26.0832 85.0172 26.0832C52.4003 26.0832 25.9421 52.2573 25.9421 84.5718H25.9077ZM84.9828 120.214C65.0961 120.214 48.9597 104.262 48.9597 84.5375C48.9597 64.8126 65.0961 48.8611 84.9828 48.8611C104.869 48.8611 121.006 64.8469 121.006 84.5375C121.006 104.228 104.869 120.214 84.9828 120.214ZM162.018 120.214H131.741C139.413 110.334 144.058 98.019 144.058 84.5718C144.058 71.1245 139.413 58.775 131.706 48.8955H161.983C167.11 59.7356 170 71.8106 170 84.5718C170 97.3329 167.11 109.408 161.983 120.214"
-                fill="var(--concordium-teal)"
-              />
-            </svg>
-          </div>
-
-          {/* Title */}
-          <div className="flex flex-col">
-            <h1 className="font-mono font-bold text-lg tracking-wide text-glow" style={{ color: 'var(--concordium-teal)' }}>
-              CONCORDIUM
-            </h1>
-            <span className="text-[10px] font-mono text-muted-foreground tracking-[0.3em] -mt-1">
-              NETWORK MAP
-            </span>
-          </div>
-
           {/* Status indicator */}
-          <div className="flex items-center gap-2 ml-6 px-3 py-1.5 rounded border border-[var(--concordium-teal)]/30 bg-[var(--concordium-teal)]/5">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-[var(--concordium-teal)]/30 bg-[var(--concordium-teal)]/5">
             <div className="w-2 h-2 rounded-full bg-[var(--concordium-teal)] status-pulse" />
             <span className="text-xs font-mono text-[var(--concordium-teal)] tracking-wider">LIVE</span>
           </div>
         </div>
 
         <ViewToggle />
-      </header>
+      </div>
 
       {/* Main content - map area */}
       <div className="flex-1 relative min-h-0 overflow-hidden">

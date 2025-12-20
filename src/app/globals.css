@@ -405,3 +405,285 @@
     transparent
   );
 }
+
+/* ========================
+   LCARS Dashboard Styles
+   Star Trek Inspired UI
+   ======================== */
+
+/* LCARS Color Palette */
+:root {
+  --lcars-cyan: #00FFFF;
+  --lcars-amber: #FFAA00;
+  --lcars-magenta: #FF00FF;
+  --lcars-red: #FF3333;
+  --lcars-blue: #3399FF;
+  --lcars-background: #0a0a12;
+}
+
+/* LCARS Panel Container */
+.lcars-panel {
+  position: relative;
+  background: var(--lcars-background);
+  border-radius: 0 20px 20px 0;
+  overflow: hidden;
+  padding: 0.5rem 1rem 0.5rem 0;
+}
+
+/* LCARS Header with curved corner */
+.lcars-header {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 0.5rem;
+}
+
+.lcars-corner {
+  width: 20px;
+  min-height: 28px;
+  border-radius: 0 0 20px 0;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.lcars-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  background: currentColor;
+  padding: 0.25rem 0.75rem;
+  margin-left: 4px;
+  border-radius: 0 14px 14px 0;
+}
+
+.lcars-title {
+  font-family: var(--font-geist-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--lcars-background);
+}
+
+/* LCARS Content area */
+.lcars-content {
+  padding: 0.25rem 0.5rem 0.25rem 1.5rem;
+}
+
+/* Accent colors */
+.accent-cyan {
+  color: var(--lcars-cyan);
+}
+
+.accent-amber {
+  color: var(--lcars-amber);
+}
+
+.accent-magenta {
+  color: var(--lcars-magenta);
+}
+
+.accent-red {
+  color: var(--lcars-red);
+}
+
+/* LCARS Status Indicator */
+.lcars-status {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--lcars-background);
+  border-radius: 10px;
+  font-size: 0.6rem;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: status-blink 1.5s ease-in-out infinite;
+}
+
+.status-label {
+  font-family: var(--font-geist-mono);
+  letter-spacing: 0.1em;
+  color: currentColor;
+}
+
+/* Status colors */
+.status-nominal .status-dot { background: var(--lcars-cyan); }
+.status-nominal .status-label { color: var(--lcars-cyan); }
+
+.status-elevated .status-dot { background: var(--lcars-amber); }
+.status-elevated .status-label { color: var(--lcars-amber); }
+
+.status-degraded .status-dot { background: var(--lcars-magenta); }
+.status-degraded .status-label { color: var(--lcars-magenta); }
+
+.status-critical .status-dot { background: var(--lcars-red); }
+.status-critical .status-label { color: var(--lcars-red); }
+
+@keyframes status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Network Pulse Component */
+.network-pulse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pulse-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,255,255,0.1) 0%, transparent 70%);
+  border: 2px solid currentColor;
+  position: relative;
+}
+
+.pulse-indicator::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.3;
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.3; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+.pulse-score {
+  display: flex;
+  align-items: baseline;
+  font-family: var(--font-geist-mono);
+}
+
+.pulse-value {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pulse-percent {
+  font-size: 0.875rem;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.pulse-history {
+  margin-top: 0.5rem;
+}
+
+/* Command Header */
+.command-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 2rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(180deg, rgba(0,20,30,0.95) 0%, rgba(0,10,20,0.9) 100%);
+  border-bottom: 2px solid var(--lcars-cyan);
+  position: relative;
+}
+
+.command-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--lcars-cyan) 20%,
+    var(--lcars-cyan) 80%,
+    transparent
+  );
+  box-shadow: 0 0 10px var(--lcars-cyan);
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--lcars-cyan);
+}
+
+.header-logo svg {
+  filter: drop-shadow(0 0 8px var(--lcars-cyan));
+}
+
+.header-title {
+  font-family: var(--font-geist-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 10px var(--lcars-cyan);
+}
+
+.header-pulse {
+  display: flex;
+  justify-content: center;
+}
+
+.header-metrics {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.metric-value {
+  font-family: var(--font-geist-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+  text-shadow: 0 0 5px currentColor;
+}
+
+/* LCARS Decorative Elements */
+.lcars-bar {
+  height: 8px;
+  background: linear-gradient(90deg,
+    var(--lcars-cyan) 0%,
+    var(--lcars-amber) 25%,
+    var(--lcars-magenta) 50%,
+    var(--lcars-blue) 75%,
+    var(--lcars-cyan) 100%
+  );
+  border-radius: 4px;
+}
+
+.lcars-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.lcars-divider::before,
+.lcars-divider::after {
+  content: '';
+  flex: 1;
+  height: 3px;
+  background: var(--lcars-amber);
+  border-radius: 2px;
+}
+
+.lcars-divider span {
+  font-family: var(--font-geist-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lcars-amber);
+  padding: 0 0.5rem;
+}

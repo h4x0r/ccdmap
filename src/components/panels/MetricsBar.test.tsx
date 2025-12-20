@@ -59,7 +59,8 @@ describe('MetricsBar', () => {
     expect(screen.getByText('84')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('95%')).toBeInTheDocument();
+    // 95 and % are in separate elements
+    expect(screen.getByText('95')).toBeInTheDocument();
   });
 
   it('displays metric labels', () => {
@@ -102,7 +103,8 @@ describe('MetricsBar', () => {
 
     render(<MetricsBar />, { wrapper: createWrapper() });
 
-    expect(screen.getByText(/updated/i)).toBeInTheDocument();
+    // Component shows "SYNCED X AGO" format
+    expect(screen.getByText(/synced/i)).toBeInTheDocument();
   });
 
   it('renders refresh button', () => {
