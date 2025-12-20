@@ -55,9 +55,9 @@ describe('CommandHeader', () => {
     expect(screen.getByText('CONCORDIUM')).toBeInTheDocument();
   });
 
-  it('displays NETWORK STATUS bar', () => {
+  it('displays NETWORK COMMAND subtitle', () => {
     render(<CommandHeader metrics={mockMetrics} history={mockHistory} />);
-    expect(screen.getByText('NETWORK STATUS')).toBeInTheDocument();
+    expect(screen.getByText('NETWORK COMMAND')).toBeInTheDocument();
   });
 
   it('renders sparklines for each metric', () => {
@@ -66,16 +66,18 @@ describe('CommandHeader', () => {
     expect(sparklines.length).toBeGreaterThan(0);
   });
 
-  it('shows LCARS logo block', () => {
+  it('shows HUD logo container with rotating ring', () => {
     render(<CommandHeader metrics={mockMetrics} history={mockHistory} />);
     const header = screen.getByTestId('command-header');
-    expect(header.querySelector('.lcars-logo-block')).toBeInTheDocument();
+    expect(header.querySelector('.hud-logo-container')).toBeInTheDocument();
+    expect(header.querySelector('.logo-ring')).toBeInTheDocument();
   });
 
-  it('shows LCARS elbow curve', () => {
+  it('shows arc reactor pulse indicator', () => {
     render(<CommandHeader metrics={mockMetrics} history={mockHistory} />);
     const header = screen.getByTestId('command-header');
-    expect(header.querySelector('.lcars-elbow-curve')).toBeInTheDocument();
+    expect(header.querySelector('.arc-reactor')).toBeInTheDocument();
+    expect(header.querySelector('.arc-core')).toBeInTheDocument();
   });
 
   it('applies custom className', () => {

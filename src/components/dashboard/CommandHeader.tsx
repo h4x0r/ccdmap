@@ -1,11 +1,11 @@
 /**
- * LCARS Command Header - Authentic Star Trek LCARS Interface
+ * Stark Industries HUD - Iron Man Inspired Interface
  *
- * Features the characteristic LCARS design elements:
- * - Large curved "elbow" corners framing content
- * - Horizontal/vertical bars with embedded labels
- * - Pastel colors on black background
- * - Condensed uppercase typography
+ * Features the J.A.R.V.I.S./F.R.I.D.A.Y. aesthetic:
+ * - Arc reactor-inspired pulse indicator
+ * - Holographic translucent panels
+ * - Electric blue with orange accents
+ * - Scanning animations and glow effects
  */
 
 import { Sparkline } from './Sparkline';
@@ -18,22 +18,6 @@ export interface CommandHeaderProps {
   className?: string;
 }
 
-/**
- * Format number with K/M suffix
- */
-function formatNumber(value: number): string {
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
-  }
-  return value.toString();
-}
-
-/**
- * Extract metric history for sparkline
- */
 function getMetricHistory(
   history: MetricSnapshot[],
   key: keyof Omit<MetricSnapshot, 'timestamp'>
@@ -41,151 +25,153 @@ function getMetricHistory(
   return history.map((h) => h[key]);
 }
 
-/**
- * LCARS Command Header component
- */
 export function CommandHeader({
   metrics,
   history,
   className = '',
 }: CommandHeaderProps) {
   const pulseStatus = getPulseStatus(metrics.pulse);
-  const statusColor = {
-    nominal: 'var(--lcars-sky)',
-    elevated: 'var(--lcars-gold)',
-    degraded: 'var(--lcars-tangerine)',
-    critical: 'var(--lcars-mars)',
-  }[pulseStatus.label.toLowerCase()] || 'var(--lcars-sky)';
+  const isNominal = pulseStatus.label === 'NOMINAL';
 
   return (
-    <header data-testid="command-header" className={`lcars-frame ${className}`}>
-      {/* Left sidebar with elbow */}
-      <div className="lcars-sidebar">
-        {/* Logo area */}
-        <div className="lcars-logo-block">
+    <header data-testid="command-header" className={`stark-hud ${className}`}>
+      {/* Scanning line animation */}
+      <div className="hud-scanline" />
+
+      {/* Left Section - Logo & Title */}
+      <div className="hud-left">
+        <div className="hud-logo-container">
+          {/* Concordium Logo */}
           <svg
-            width="32"
-            height="32"
+            width="36"
+            height="36"
             viewBox="0 0 170 169"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="lcars-logo"
+            className="hud-logo"
           >
             <path
               d="M25.9077 84.5718C25.9077 116.886 52.3315 143.06 84.9828 143.06C93.7219 143.06 102.014 141.105 109.48 137.743V165.186C101.739 167.485 93.5155 168.754 84.9828 168.754C38.053 168.754 0 131.088 0 84.5718C0 38.0553 38.053 0.389404 85.0172 0.389404C93.5499 0.389404 101.739 1.65866 109.514 3.95703V31.4003C102.048 28.0042 93.7563 26.0832 85.0172 26.0832C52.4003 26.0832 25.9421 52.2573 25.9421 84.5718H25.9077ZM84.9828 120.214C65.0961 120.214 48.9597 104.262 48.9597 84.5375C48.9597 64.8126 65.0961 48.8611 84.9828 48.8611C104.869 48.8611 121.006 64.8469 121.006 84.5375C121.006 104.228 104.869 120.214 84.9828 120.214ZM162.018 120.214H131.741C139.413 110.334 144.058 98.019 144.058 84.5718C144.058 71.1245 139.413 58.775 131.706 48.8955H161.983C167.11 59.7356 170 71.8106 170 84.5718C170 97.3329 167.11 109.408 161.983 120.214"
               fill="currentColor"
             />
           </svg>
+          {/* Rotating ring */}
+          <div className="logo-ring" />
         </div>
 
-        {/* Elbow connector - the signature LCARS curved corner */}
-        <div className="lcars-elbow">
-          <div className="lcars-elbow-curve" />
+        <div className="hud-title-block">
+          <h1 className="hud-title">CONCORDIUM</h1>
+          <span className="hud-subtitle">NETWORK COMMAND</span>
         </div>
-
-        {/* Vertical bar segment */}
-        <div className="lcars-sidebar-bar lcars-lilac" />
       </div>
 
-      {/* Top horizontal bar */}
-      <div className="lcars-topbar">
-        {/* Title section */}
-        <div className="lcars-title-section">
-          <div className="lcars-bar lcars-peach">
-            <span className="lcars-bar-label">CONCORDIUM</span>
+      {/* Center - Arc Reactor Style Pulse */}
+      <div className="hud-center">
+        <div className="arc-reactor">
+          {/* Outer rings */}
+          <div className="arc-ring arc-ring-1" />
+          <div className="arc-ring arc-ring-2" />
+          <div className="arc-ring arc-ring-3" />
+
+          {/* Core */}
+          <div className={`arc-core ${isNominal ? 'nominal' : 'warning'}`}>
+            <span className="arc-value">{metrics.pulse}</span>
+            <span className="arc-unit">%</span>
           </div>
-          <div className="lcars-bar lcars-lavender">
-            <span className="lcars-bar-label">NETWORK STATUS</span>
+
+          {/* Status label */}
+          <div className={`arc-status ${isNominal ? 'nominal' : 'warning'}`}>
+            {pulseStatus.label}
           </div>
         </div>
 
-        {/* Network Pulse - Hero Element */}
-        <div className="lcars-pulse-display">
-          <div
-            className="lcars-pulse-indicator"
-            style={{ '--pulse-color': statusColor } as React.CSSProperties}
-          >
-            <span className="lcars-pulse-value">{metrics.pulse}</span>
-            <span className="lcars-pulse-unit">%</span>
-          </div>
-          <div className="lcars-pulse-label">
-            <span className="lcars-status-text" style={{ color: statusColor }}>
-              {pulseStatus.label}
-            </span>
-            <Sparkline
-              data={getMetricHistory(history, 'pulse')}
-              min={0}
-              max={100}
-              maxBars={20}
-              className="lcars-pulse-sparkline"
-            />
-          </div>
+        {/* Pulse sparkline */}
+        <div className="arc-history">
+          <Sparkline
+            data={getMetricHistory(history, 'pulse')}
+            min={0}
+            max={100}
+            maxBars={24}
+            className="arc-sparkline"
+          />
         </div>
+      </div>
 
-        {/* Metric readouts */}
-        <div className="lcars-metrics-row">
-          <div className="lcars-metric">
-            <div className="lcars-metric-bar lcars-sky" />
-            <div className="lcars-metric-data">
-              <span className="lcars-metric-value">{metrics.nodes}</span>
-              <span className="lcars-metric-label">NODES</span>
-            </div>
+      {/* Right - Metric Panels */}
+      <div className="hud-right">
+        {/* Metric: Nodes */}
+        <div className="hud-panel">
+          <div className="panel-corner tl" />
+          <div className="panel-corner tr" />
+          <div className="panel-corner bl" />
+          <div className="panel-corner br" />
+          <div className="panel-content">
+            <span className="panel-value">{metrics.nodes}</span>
+            <span className="panel-label">NODES</span>
             <Sparkline
               data={getMetricHistory(history, 'nodes')}
-              maxBars={12}
-              className="lcars-metric-spark"
+              maxBars={10}
+              className="panel-spark"
             />
           </div>
+        </div>
 
-          <div className="lcars-metric">
-            <div className="lcars-metric-bar lcars-gold" />
-            <div className="lcars-metric-data">
-              <span className="lcars-metric-value">{metrics.finalizationTime}s</span>
-              <span className="lcars-metric-label">FINAL</span>
-            </div>
+        {/* Metric: Finalization */}
+        <div className="hud-panel">
+          <div className="panel-corner tl" />
+          <div className="panel-corner tr" />
+          <div className="panel-corner bl" />
+          <div className="panel-corner br" />
+          <div className="panel-content">
+            <span className="panel-value">{metrics.finalizationTime}s</span>
+            <span className="panel-label">FINAL</span>
             <Sparkline
               data={getMetricHistory(history, 'finalizationTime')}
-              maxBars={12}
-              className="lcars-metric-spark"
+              maxBars={10}
+              className="panel-spark"
             />
           </div>
+        </div>
 
-          <div className="lcars-metric">
-            <div className="lcars-metric-bar lcars-tangerine" />
-            <div className="lcars-metric-data">
-              <span className="lcars-metric-value">{metrics.latency}ms</span>
-              <span className="lcars-metric-label">LATENCY</span>
-            </div>
+        {/* Metric: Latency */}
+        <div className="hud-panel accent">
+          <div className="panel-corner tl" />
+          <div className="panel-corner tr" />
+          <div className="panel-corner bl" />
+          <div className="panel-corner br" />
+          <div className="panel-content">
+            <span className="panel-value">{metrics.latency}ms</span>
+            <span className="panel-label">LATENCY</span>
             <Sparkline
               data={getMetricHistory(history, 'latency')}
-              maxBars={12}
-              className="lcars-metric-spark"
+              maxBars={10}
+              className="panel-spark"
             />
           </div>
+        </div>
 
-          <div className="lcars-metric">
-            <div className="lcars-metric-bar lcars-sky" />
-            <div className="lcars-metric-data">
-              <span className="lcars-metric-value">{metrics.consensus}%</span>
-              <span className="lcars-metric-label">CONSENSUS</span>
-            </div>
+        {/* Metric: Consensus */}
+        <div className="hud-panel">
+          <div className="panel-corner tl" />
+          <div className="panel-corner tr" />
+          <div className="panel-corner bl" />
+          <div className="panel-corner br" />
+          <div className="panel-content">
+            <span className="panel-value">{metrics.consensus}%</span>
+            <span className="panel-label">CONSENSUS</span>
             <Sparkline
               data={getMetricHistory(history, 'consensus')}
               min={0}
               max={100}
-              maxBars={12}
-              className="lcars-metric-spark"
+              maxBars={10}
+              className="panel-spark"
             />
           </div>
         </div>
-
-        {/* End cap bars */}
-        <div className="lcars-endcap">
-          <div className="lcars-bar-small lcars-peach" />
-          <div className="lcars-bar-small lcars-lilac" />
-          <div className="lcars-bar-end lcars-lavender" />
-        </div>
       </div>
+
+      {/* Bottom edge glow */}
+      <div className="hud-edge-glow" />
     </header>
   );
 }
