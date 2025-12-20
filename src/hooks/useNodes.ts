@@ -24,8 +24,9 @@ export function useNodes() {
 export interface NetworkMetrics {
   totalNodes: number;
   avgPeers: number;
-  maxFinalizationLag: number;
+  maxFinalizationLag: number;  // blocks behind (sync health)
   consensusParticipation: number;
+  avgLatency: number;  // ms, from averagePing
 }
 
 export function useNetworkMetrics() {
@@ -50,11 +51,18 @@ export function useNetworkMetrics() {
     const consensusNodes = nodes.filter((n) => n.consensusRunning);
     const consensusParticipation = Math.round((consensusNodes.length / totalNodes) * 100);
 
+    // Average latency from nodes with ping data
+    const nodesWithPing = nodes.filter((n) => n.averagePing !== null && n.averagePing > 0);
+    const avgLatency = nodesWithPing.length > 0
+      ? Math.round(nodesWithPing.reduce((sum, n) => sum + (n.averagePing ?? 0), 0) / nodesWithPing.length)
+      : 50; // default fallback
+
     return {
       totalNodes,
       avgPeers,
       maxFinalizationLag,
       consensusParticipation,
+      avgLatency,
     };
   }, [nodes]);
 

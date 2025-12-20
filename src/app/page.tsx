@@ -102,10 +102,15 @@ export default function Home() {
   useEffect(() => {
     if (!networkMetrics) return;
 
+    // Calculate consensus node count from percentage
+    const consensusNodeCount = Math.round((networkMetrics.consensusParticipation / 100) * networkMetrics.totalNodes);
+
     const pulse = calculateNetworkPulse({
+      // maxFinalizationLag is blocks behind - treat 0-2 blocks as healthy, 10+ as timeout
+      // This maps well to the 2-10 second thresholds (blocks lag ≈ sync health)
       finalizationTime: networkMetrics.maxFinalizationLag,
-      latency: 45,
-      consensusRunning: Math.round((networkMetrics.consensusParticipation / 100) * networkMetrics.totalNodes),
+      latency: networkMetrics.avgLatency,
+      consensusRunning: consensusNodeCount,
       totalNodes: networkMetrics.totalNodes,
     });
 
@@ -113,7 +118,7 @@ export default function Home() {
       timestamp: Date.now(),
       nodes: networkMetrics.totalNodes,
       finalizationTime: networkMetrics.maxFinalizationLag,
-      latency: 45,
+      latency: networkMetrics.avgLatency,
       packets: 1200000,
       consensus: networkMetrics.consensusParticipation,
       pulse,
@@ -129,10 +134,10 @@ export default function Home() {
         timestamp: Date.now(),
         nodes: networkMetrics?.totalNodes ?? 0,
         finalizationTime: networkMetrics?.maxFinalizationLag ?? 0,
-        latency: 45,
+        latency: networkMetrics?.avgLatency ?? 50,
         packets: 1200000,
         consensus: networkMetrics?.consensusParticipation ?? 0,
-        pulse: 94,
+        pulse: 100,
       };
 
   const pulseStatus = getPulseStatus(currentMetrics.pulse);
