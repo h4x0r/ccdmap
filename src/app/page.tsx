@@ -321,7 +321,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {nodes?.slice(0, 50).map((node) => (
+                  {nodes?.map((node) => (
                     <tr
                       key={node.nodeId}
                       className={selectedNodeId === node.nodeId ? 'selected' : ''}
