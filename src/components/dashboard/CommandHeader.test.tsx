@@ -25,9 +25,9 @@ describe('CommandHeader', () => {
     expect(screen.getByTestId('command-header')).toBeInTheDocument();
   });
 
-  it('displays network pulse', () => {
+  it('displays network pulse value', () => {
     render(<CommandHeader metrics={mockMetrics} history={mockHistory} />);
-    expect(screen.getByTestId('network-pulse')).toBeInTheDocument();
+    expect(screen.getByText('94')).toBeInTheDocument();
   });
 
   it('displays node count', () => {
@@ -50,15 +50,14 @@ describe('CommandHeader', () => {
     expect(screen.getByText('98%')).toBeInTheDocument();
   });
 
-  it('displays packets formatted with K suffix', () => {
+  it('displays CONCORDIUM title bar', () => {
     render(<CommandHeader metrics={mockMetrics} history={mockHistory} />);
-    expect(screen.getByText('1.2M')).toBeInTheDocument();
+    expect(screen.getByText('CONCORDIUM')).toBeInTheDocument();
   });
 
-  it('renders LCARS panels for metrics', () => {
+  it('displays NETWORK STATUS bar', () => {
     render(<CommandHeader metrics={mockMetrics} history={mockHistory} />);
-    const panels = screen.getAllByTestId('lcars-panel');
-    expect(panels.length).toBeGreaterThan(0);
+    expect(screen.getByText('NETWORK STATUS')).toBeInTheDocument();
   });
 
   it('renders sparklines for each metric', () => {
@@ -67,11 +66,16 @@ describe('CommandHeader', () => {
     expect(sparklines.length).toBeGreaterThan(0);
   });
 
-  it('shows logo or title', () => {
+  it('shows LCARS logo block', () => {
     render(<CommandHeader metrics={mockMetrics} history={mockHistory} />);
-    // Should have either logo SVG or title text
     const header = screen.getByTestId('command-header');
-    expect(header.querySelector('.header-logo, .header-title')).toBeInTheDocument();
+    expect(header.querySelector('.lcars-logo-block')).toBeInTheDocument();
+  });
+
+  it('shows LCARS elbow curve', () => {
+    render(<CommandHeader metrics={mockMetrics} history={mockHistory} />);
+    const header = screen.getByTestId('command-header');
+    expect(header.querySelector('.lcars-elbow-curve')).toBeInTheDocument();
   });
 
   it('applies custom className', () => {

@@ -408,29 +408,285 @@
 
 /* ========================
    LCARS Dashboard Styles
-   Star Trek Inspired UI
+   Authentic Star Trek LCARS UI
    ======================== */
 
-/* LCARS Color Palette */
+/*
+ * LCARS Color Palette - Authentic TNG/DS9/VOY pastels
+ * Based on Michael Okuda's original design
+ */
 :root {
-  --lcars-cyan: #00FFFF;
-  --lcars-amber: #FFAA00;
-  --lcars-magenta: #FF00FF;
-  --lcars-red: #FF3333;
-  --lcars-blue: #3399FF;
-  --lcars-background: #0a0a12;
+  /* Core LCARS pastels */
+  --lcars-peach: #FF9966;
+  --lcars-tangerine: #FF7700;
+  --lcars-gold: #FFCC66;
+  --lcars-lavender: #CC99FF;
+  --lcars-lilac: #CC77FF;
+  --lcars-sky: #99CCFF;
+  --lcars-ice: #99FFFF;
+  --lcars-mars: #FF5555;
+
+  /* Background and text */
+  --lcars-black: #000000;
+  --lcars-text: #FF9966;
+
+  /* Accent colors for legacy support */
+  --lcars-cyan: var(--lcars-ice);
+  --lcars-amber: var(--lcars-gold);
+  --lcars-magenta: var(--lcars-lilac);
+  --lcars-red: var(--lcars-mars);
+  --lcars-background: #000000;
 }
 
-/* LCARS Panel Container */
+/* ========================
+   LCARS Frame Structure
+   ======================== */
+
+.lcars-frame {
+  display: flex;
+  background: var(--lcars-black);
+  min-height: 90px;
+}
+
+/* Left Sidebar with Elbow */
+.lcars-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.lcars-logo-block {
+  height: 44px;
+  background: var(--lcars-peach);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 0 20px;
+}
+
+.lcars-logo {
+  color: var(--lcars-black);
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+}
+
+/* The signature LCARS elbow curve */
+.lcars-elbow {
+  position: relative;
+  height: 40px;
+  background: var(--lcars-peach);
+}
+
+.lcars-elbow-curve {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  height: 40px;
+  background: var(--lcars-black);
+  border-radius: 20px 0 0 0;
+}
+
+.lcars-elbow-curve::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: var(--lcars-peach);
+  border-radius: 0 0 0 20px;
+}
+
+.lcars-sidebar-bar {
+  flex: 1;
+  width: 40px;
+  border-radius: 0 0 20px 0;
+  min-height: 6px;
+}
+
+/* Top Bar Structure */
+.lcars-topbar {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 44px;
+  padding-right: 12px;
+}
+
+/* Title Section - Colored Bars */
+.lcars-title-section {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lcars-bar {
+  height: 28px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border-radius: 14px;
+}
+
+.lcars-bar-label {
+  font-family: var(--font-geist-mono), 'Helvetica Neue', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--lcars-black);
+  white-space: nowrap;
+}
+
+/* Network Pulse Display */
+.lcars-pulse-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.lcars-pulse-indicator {
+  display: flex;
+  align-items: baseline;
+  padding: 4px 16px;
+  background: var(--lcars-black);
+  border: 2px solid var(--pulse-color, var(--lcars-sky));
+  border-radius: 8px;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--pulse-color, var(--lcars-sky)) 40%, transparent);
+}
+
+.lcars-pulse-value {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--pulse-color, var(--lcars-sky));
+  line-height: 1;
+}
+
+.lcars-pulse-unit {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pulse-color, var(--lcars-sky));
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.lcars-pulse-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lcars-status-text {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.lcars-pulse-sparkline {
+  color: var(--lcars-sky);
+}
+
+/* Metrics Row */
+.lcars-metrics-row {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.lcars-metric {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lcars-metric-bar {
+  width: 4px;
+  height: 36px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.lcars-metric-data {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 48px;
+}
+
+.lcars-metric-value {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--lcars-peach);
+  line-height: 1.1;
+}
+
+.lcars-metric-label {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--lcars-sky);
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.lcars-metric-spark {
+  color: var(--lcars-gold);
+  font-size: 10px;
+}
+
+/* End Cap Bars */
+.lcars-endcap {
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.lcars-bar-small {
+  width: 20px;
+  height: 28px;
+  border-radius: 14px;
+}
+
+.lcars-bar-end {
+  width: 40px;
+  height: 28px;
+  border-radius: 14px;
+}
+
+/* LCARS Color Classes */
+.lcars-peach { background: var(--lcars-peach); }
+.lcars-tangerine { background: var(--lcars-tangerine); }
+.lcars-gold { background: var(--lcars-gold); }
+.lcars-lavender { background: var(--lcars-lavender); }
+.lcars-lilac { background: var(--lcars-lilac); }
+.lcars-sky { background: var(--lcars-sky); }
+.lcars-ice { background: var(--lcars-ice); }
+.lcars-mars { background: var(--lcars-mars); }
+
+/* ========================
+   LCARS Panel Component
+   ======================== */
+
 .lcars-panel {
   position: relative;
-  background: var(--lcars-background);
-  border-radius: 0 20px 20px 0;
+  background: var(--lcars-black);
+  border-radius: 0 16px 16px 0;
   overflow: hidden;
   padding: 0.5rem 1rem 0.5rem 0;
 }
 
-/* LCARS Header with curved corner */
 .lcars-header {
   display: flex;
   align-items: stretch;
@@ -438,14 +694,14 @@
 }
 
 .lcars-corner {
-  width: 20px;
-  min-height: 28px;
-  border-radius: 0 0 20px 0;
+  width: 16px;
+  min-height: 24px;
+  border-radius: 0 0 16px 0;
   background: currentColor;
   flex-shrink: 0;
 }
 
-.lcars-title-bar {
+.lcars-title-bar-old {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -453,48 +709,39 @@
   background: currentColor;
   padding: 0.25rem 0.75rem;
   margin-left: 4px;
-  border-radius: 0 14px 14px 0;
+  border-radius: 0 12px 12px 0;
 }
 
 .lcars-title {
-  font-family: var(--font-geist-mono);
-  font-size: 0.7rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--lcars-background);
+  color: var(--lcars-black);
 }
 
-/* LCARS Content area */
 .lcars-content {
-  padding: 0.25rem 0.5rem 0.25rem 1.5rem;
+  padding: 0.25rem 0.5rem 0.25rem 1.25rem;
 }
 
-/* Accent colors */
-.accent-cyan {
-  color: var(--lcars-cyan);
-}
+/* Accent color classes for panels */
+.accent-cyan { color: var(--lcars-ice); }
+.accent-amber { color: var(--lcars-gold); }
+.accent-magenta { color: var(--lcars-lilac); }
+.accent-red { color: var(--lcars-mars); }
 
-.accent-amber {
-  color: var(--lcars-amber);
-}
+/* ========================
+   LCARS Status Indicators
+   ======================== */
 
-.accent-magenta {
-  color: var(--lcars-magenta);
-}
-
-.accent-red {
-  color: var(--lcars-red);
-}
-
-/* LCARS Status Indicator */
 .lcars-status {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.15rem 0.5rem;
-  background: var(--lcars-background);
-  border-radius: 10px;
+  background: var(--lcars-black);
+  border-radius: 8px;
   font-size: 0.6rem;
 }
 
@@ -502,34 +749,36 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  animation: status-blink 1.5s ease-in-out infinite;
+  animation: lcars-blink 1.5s ease-in-out infinite;
 }
 
 .status-label {
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-geist-mono), monospace;
   letter-spacing: 0.1em;
   color: currentColor;
 }
 
-/* Status colors */
-.status-nominal .status-dot { background: var(--lcars-cyan); }
-.status-nominal .status-label { color: var(--lcars-cyan); }
+.status-nominal .status-dot { background: var(--lcars-sky); }
+.status-nominal .status-label { color: var(--lcars-sky); }
 
-.status-elevated .status-dot { background: var(--lcars-amber); }
-.status-elevated .status-label { color: var(--lcars-amber); }
+.status-elevated .status-dot { background: var(--lcars-gold); }
+.status-elevated .status-label { color: var(--lcars-gold); }
 
-.status-degraded .status-dot { background: var(--lcars-magenta); }
-.status-degraded .status-label { color: var(--lcars-magenta); }
+.status-degraded .status-dot { background: var(--lcars-tangerine); }
+.status-degraded .status-label { color: var(--lcars-tangerine); }
 
-.status-critical .status-dot { background: var(--lcars-red); }
-.status-critical .status-label { color: var(--lcars-red); }
+.status-critical .status-dot { background: var(--lcars-mars); }
+.status-critical .status-label { color: var(--lcars-mars); }
 
-@keyframes status-blink {
+@keyframes lcars-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
 
-/* Network Pulse Component */
+/* ========================
+   Network Pulse Component
+   ======================== */
+
 .network-pulse {
   display: flex;
   flex-direction: column;
@@ -543,7 +792,7 @@
   align-items: center;
   padding: 1rem 1.5rem;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,255,255,0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(153,204,255,0.1) 0%, transparent 70%);
   border: 2px solid currentColor;
   position: relative;
 }
@@ -555,10 +804,10 @@
   border-radius: 50%;
   border: 1px solid currentColor;
   opacity: 0.3;
-  animation: pulse-ring 2s ease-out infinite;
+  animation: lcars-pulse-ring 2s ease-out infinite;
 }
 
-@keyframes pulse-ring {
+@keyframes lcars-pulse-ring {
   0% { transform: scale(1); opacity: 0.3; }
   100% { transform: scale(1.2); opacity: 0; }
 }
@@ -566,7 +815,7 @@
 .pulse-score {
   display: flex;
   align-items: baseline;
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-geist-mono), monospace;
 }
 
 .pulse-value {
@@ -585,83 +834,9 @@
   margin-top: 0.5rem;
 }
 
-/* Command Header */
-.command-header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 2rem;
-  padding: 1rem 2rem;
-  background: linear-gradient(180deg, rgba(0,20,30,0.95) 0%, rgba(0,10,20,0.9) 100%);
-  border-bottom: 2px solid var(--lcars-cyan);
-  position: relative;
-}
-
-.command-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent,
-    var(--lcars-cyan) 20%,
-    var(--lcars-cyan) 80%,
-    transparent
-  );
-  box-shadow: 0 0 10px var(--lcars-cyan);
-}
-
-.header-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--lcars-cyan);
-}
-
-.header-logo svg {
-  filter: drop-shadow(0 0 8px var(--lcars-cyan));
-}
-
-.header-title {
-  font-family: var(--font-geist-mono);
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-shadow: 0 0 10px var(--lcars-cyan);
-}
-
-.header-pulse {
-  display: flex;
-  justify-content: center;
-}
-
-.header-metrics {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.metric-value {
-  font-family: var(--font-geist-mono);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--foreground);
-  text-shadow: 0 0 5px currentColor;
-}
-
-/* LCARS Decorative Elements */
-.lcars-bar {
-  height: 8px;
-  background: linear-gradient(90deg,
-    var(--lcars-cyan) 0%,
-    var(--lcars-amber) 25%,
-    var(--lcars-magenta) 50%,
-    var(--lcars-blue) 75%,
-    var(--lcars-cyan) 100%
-  );
-  border-radius: 4px;
-}
+/* ========================
+   LCARS Decorative Elements
+   ======================== */
 
 .lcars-divider {
   display: flex;
@@ -675,15 +850,40 @@
   content: '';
   flex: 1;
   height: 3px;
-  background: var(--lcars-amber);
+  background: var(--lcars-gold);
   border-radius: 2px;
 }
 
 .lcars-divider span {
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--lcars-amber);
+  color: var(--lcars-gold);
   padding: 0 0.5rem;
+}
+
+/* LCARS-style button */
+.lcars-button {
+  height: 28px;
+  padding: 0 16px;
+  background: var(--lcars-lavender);
+  border: none;
+  border-radius: 14px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lcars-black);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.lcars-button:hover {
+  background: var(--lcars-lilac);
+}
+
+.lcars-button:active {
+  background: var(--lcars-peach);
 }

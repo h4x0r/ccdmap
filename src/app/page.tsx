@@ -8,7 +8,6 @@ import { useMetricHistory, type MetricSnapshot } from '@/hooks/useMetricHistory'
 import { calculateNetworkPulse } from '@/lib/pulse';
 import { ViewToggle } from '@/components/map/ViewToggle';
 import { NodeDetailPanel } from '@/components/panels/NodeDetailPanel';
-import { MetricsBar } from '@/components/panels/MetricsBar';
 import { CommandHeader } from '@/components/dashboard/CommandHeader';
 
 // Dynamic imports for heavy map components
@@ -95,17 +94,17 @@ export default function Home() {
       };
 
   return (
-    <main className="h-screen w-screen flex flex-col overflow-hidden bg-background cyber-grid scan-lines">
+    <main className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--lcars-black)]">
       {/* LCARS Command Header with Network Pulse */}
       <CommandHeader metrics={currentMetrics} history={history} />
 
-      {/* View Toggle Bar */}
-      <div className="h-12 flex items-center justify-between px-6 shrink-0 bg-background/80 backdrop-blur-sm border-b border-[var(--lcars-cyan)]/20">
-        <div className="flex items-center gap-4">
+      {/* LCARS Controls Bar */}
+      <div className="h-10 flex items-center justify-between px-4 shrink-0 bg-[var(--lcars-black)] border-t-4 border-[var(--lcars-lavender)]">
+        <div className="flex items-center gap-3">
           {/* Status indicator */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-[var(--concordium-teal)]/30 bg-[var(--concordium-teal)]/5">
-            <div className="w-2 h-2 rounded-full bg-[var(--concordium-teal)] status-pulse" />
-            <span className="text-xs font-mono text-[var(--concordium-teal)] tracking-wider">LIVE</span>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--lcars-sky)]">
+            <div className="w-2 h-2 rounded-full bg-[var(--lcars-black)] animate-pulse" />
+            <span className="text-[10px] font-mono font-bold text-[var(--lcars-black)] tracking-wider uppercase">LIVE</span>
           </div>
         </div>
 
@@ -126,9 +125,6 @@ export default function Home() {
         {/* Detail panel */}
         <NodeDetailPanel />
       </div>
-
-      {/* Metrics bar */}
-      <MetricsBar />
     </main>
   );
 }
