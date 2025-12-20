@@ -237,8 +237,8 @@ export default function Home() {
             </span>
           </div>
           <div className="bb-ticker-item">
-            <span className="bb-ticker-symbol">FINALIZATION</span>
-            <span className="bb-ticker-value">{currentMetrics.finalizationTime}s</span>
+            <span className="bb-ticker-symbol">SYNC LAG</span>
+            <span className="bb-ticker-value">{currentMetrics.finalizationTime} blks</span>
           </div>
           <div className="bb-ticker-item">
             <span className="bb-ticker-symbol">CONSENSUS</span>
@@ -299,9 +299,9 @@ export default function Home() {
               <span className="bb-metric-value">{networkMetrics?.avgPeers ?? 0}</span>
             </div>
             <div className="bb-metric">
-              <span className="bb-metric-label">Finalization</span>
+              <span className="bb-metric-label">Sync Lag</span>
               <span className={`bb-metric-value ${currentMetrics.finalizationTime >= THRESHOLDS.FINALIZATION_TIMEOUT ? 'negative' : currentMetrics.finalizationTime >= THRESHOLDS.FINALIZATION_OPTIMAL ? 'warning' : ''}`}>
-                {currentMetrics.finalizationTime}s
+                {currentMetrics.finalizationTime} blks
               </span>
             </div>
             <div className="bb-metric">
@@ -331,7 +331,7 @@ export default function Home() {
               )}
               {currentMetrics.finalizationTime >= THRESHOLDS.FINALIZATION_TIMEOUT && (
                 <div className="bb-alert warning">
-                  WARNING: Finalization timeout ({currentMetrics.finalizationTime}s)
+                  WARNING: High sync lag ({currentMetrics.finalizationTime} blocks)
                 </div>
               )}
               {currentMetrics.pulse < 90 && currentMetrics.pulse >= THRESHOLDS.CONSENSUS_QUORUM && (
@@ -500,8 +500,8 @@ export default function Home() {
           </span>
         </div>
         <div className="bb-status-item">
-          <span className="bb-status-label">Finalization:</span>
-          <span className="bb-status-value">{currentMetrics.finalizationTime}s</span>
+          <span className="bb-status-label">Sync Lag:</span>
+          <span className="bb-status-value">{currentMetrics.finalizationTime} blks</span>
         </div>
         <div className="flex-1" />
         <div className="bb-status-item">

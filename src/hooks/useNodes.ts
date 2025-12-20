@@ -41,11 +41,13 @@ export function useNetworkMetrics() {
     const totalPeers = nodes.reduce((sum, node) => sum + node.peersCount, 0);
     const avgPeers = Math.round(totalPeers / totalNodes);
 
-    // Finalization lag (max blocks behind the highest)
-    const heights = nodes.map((n) => n.finalizedBlockHeight);
-    const maxHeight = Math.max(...heights);
-    const minHeight = Math.min(...heights);
-    const maxFinalizationLag = maxHeight - minHeight;
+    // Sync lag - use 95th percentile to ignore outlier nodes stuck way behind
+    const heights = nodes.map((n) => n.finalizedBlockHeight).sort((a, b) => b - a);
+    const maxHeight = heights[0];
+    // 95th percentile = ignore bottom 5% of nodes (outliers/stuck nodes)
+    const percentile95Index = Math.floor(heights.length * 0.95);
+    const percentile95Height = heights[Math.min(percentile95Index, heights.length - 1)];
+    const maxFinalizationLag = maxHeight - percentile95Height;
 
     // Consensus participation (% of nodes with consensus running)
     const consensusNodes = nodes.filter((n) => n.consensusRunning);
