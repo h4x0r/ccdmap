@@ -28,6 +28,8 @@ export interface ConcordiumNode {
 
 export type NodeHealth = 'healthy' | 'lagging' | 'issue';
 
+export type NodeTier = 'baker' | 'hub' | 'standard' | 'edge';
+
 export interface ConcordiumNodeData extends Record<string, unknown> {
   label: string;
   peersCount: number;
@@ -36,6 +38,8 @@ export interface ConcordiumNodeData extends Record<string, unknown> {
   node: ConcordiumNode;
   /** Set dynamically when a node is selected - true for its connected peers */
   isConnectedPeer?: boolean;
+  /** Node tier for layout - set by layout algorithm */
+  tier?: NodeTier;
 }
 
 export function calculateNodeHealth(node: ConcordiumNode, maxHeight: number): NodeHealth {

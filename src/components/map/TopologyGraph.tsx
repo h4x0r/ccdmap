@@ -32,34 +32,49 @@ import {
 function ConcordiumNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as unknown as ConcordiumNodeData;
   const isConnectedPeer = nodeData.isConnectedPeer;
+  const tier = nodeData.tier || 'standard';
 
-  // Cyberpunk color scheme with glows
+  // Health colors - consistent across all tiers
   const healthColors = {
     healthy: {
       bg: 'bg-emerald-500',
       border: 'border-emerald-400',
-      glow: 'shadow-[0_0_15px_rgba(52,211,153,0.5)]',
+      glow: 'shadow-[0_0_12px_rgba(52,211,153,0.5)]',
     },
     lagging: {
       bg: 'bg-amber-500',
       border: 'border-amber-400',
-      glow: 'shadow-[0_0_15px_rgba(251,191,36,0.5)]',
+      glow: 'shadow-[0_0_12px_rgba(251,191,36,0.5)]',
     },
     issue: {
       bg: 'bg-red-500',
       border: 'border-red-400',
-      glow: 'shadow-[0_0_15px_rgba(248,113,113,0.5)]',
+      glow: 'shadow-[0_0_12px_rgba(248,113,113,0.5)]',
     },
   }[nodeData.health];
 
-  // Dynamic size based on peer count (min 8px, max 120px) - very dramatic scaling
-  const baseSize = 8;
-  const maxSize = 120;
-  const scaleFactor = Math.min(nodeData.peersCount / 10, 1);
-  const size = Math.round(baseSize + (maxSize - baseSize) * scaleFactor);
+  // Tier-based sizing: Bakers largest, Edge smallest
+  const tierSizes = {
+    baker: { base: 40, max: 70 },    // Largest - critical infrastructure
+    hub: { base: 25, max: 50 },      // Large - network backbone
+    standard: { base: 14, max: 30 }, // Medium - regular nodes
+    edge: { base: 8, max: 18 },      // Small - peripheral
+  };
+
+  const tierSize = tierSizes[tier];
+  const peerScale = Math.min(nodeData.peersCount / 20, 1);
+  const size = Math.round(tierSize.base + (tierSize.max - tierSize.base) * peerScale);
+
+  // Tier-specific styling
+  const tierStyles = {
+    baker: 'ring-2 ring-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.4)]',
+    hub: 'ring-1 ring-[var(--bb-cyan)]/30',
+    standard: '',
+    edge: 'opacity-80',
+  };
 
   // Selected node is MUCH larger and has distinct styling
-  const selectedSize = selected ? Math.max(size * 1.5, 40) : size;
+  const selectedSize = selected ? Math.max(size * 1.4, 35) : size;
 
   return (
     <TooltipProvider>
@@ -108,6 +123,7 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
                 healthColors.bg,
                 healthColors.border,
                 healthColors.glow,
+                tierStyles[tier],
                 selected && 'border-[var(--bb-orange)] shadow-[0_0_30px_rgba(255,102,0,0.8)]',
                 isConnectedPeer && !selected && 'shadow-[0_0_20px_rgba(0,204,255,0.5)]'
               )}
@@ -142,6 +158,15 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
               {nodeData.node.nodeId}
             </div>
             <div className="flex gap-2 flex-wrap pt-1">
+              <span className={cn(
+                'text-[10px] font-mono px-1',
+                tier === 'baker' && 'text-purple-400 bg-purple-500/20',
+                tier === 'hub' && 'text-[var(--bb-cyan)]',
+                tier === 'standard' && 'text-[var(--bb-gray)]',
+                tier === 'edge' && 'text-[var(--bb-gray)] opacity-70'
+              )}>
+                {tier.toUpperCase()}
+              </span>
               <span className="text-[10px] font-mono text-[var(--bb-cyan)]">
                 {nodeData.peersCount} PEERS
               </span>
@@ -153,11 +178,6 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
               )}>
                 {nodeData.health.toUpperCase()}
               </span>
-              {nodeData.isBaker && (
-                <span className="text-[10px] font-mono text-purple-400">
-                  BAKER
-                </span>
-              )}
             </div>
           </div>
         </TooltipContent>
@@ -212,11 +232,11 @@ export function TopologyGraph() {
     const rawNodes = toReactFlowNodes(apiNodes);
     const rawEdges = toReactFlowEdges(apiNodes);
 
-    // Apply force-directed layout to minimize edge crossings
+    // Apply tiered "Mission Control" layout
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       rawNodes,
       rawEdges,
-      { width: 1400, height: 900, iterations: 400 }
+      { width: 1400, height: 900 }
     );
 
     return {
@@ -287,7 +307,7 @@ export function TopologyGraph() {
           selected: n.id === selectedNodeId,
           data: {
             ...n.data,
-            isConnectedPeer: selectedNodeId && selectedPeerIds.has(n.id) && n.id !== selectedNodeId,
+            isConnectedPeer: !!(selectedNodeId && selectedPeerIds.has(n.id) && n.id !== selectedNodeId),
           },
           style: {
             opacity: selectedNodeId
@@ -324,6 +344,26 @@ export function TopologyGraph() {
           style={{ bottom: 20, left: 20 }}
         />
       </ReactFlow>
+
+      {/* Tier Labels - Bloomberg style */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute left-4 top-[60px] text-[10px] font-mono font-bold text-purple-500/60 tracking-widest">
+          BAKERS
+        </div>
+        <div className="absolute left-4 top-[230px] text-[10px] font-mono font-bold text-[var(--bb-cyan)]/40 tracking-widest">
+          HUBS
+        </div>
+        <div className="absolute left-4 top-[460px] text-[10px] font-mono font-bold text-[var(--bb-gray)]/30 tracking-widest">
+          STANDARD
+        </div>
+        <div className="absolute left-4 top-[730px] text-[10px] font-mono font-bold text-[var(--bb-gray)]/20 tracking-widest">
+          EDGE
+        </div>
+        {/* Tier separator lines */}
+        <div className="absolute left-0 right-0 top-[180px] h-px bg-gradient-to-r from-purple-500/20 via-purple-500/10 to-transparent" />
+        <div className="absolute left-0 right-0 top-[380px] h-px bg-gradient-to-r from-[var(--bb-cyan)]/15 via-[var(--bb-cyan)]/5 to-transparent" />
+        <div className="absolute left-0 right-0 top-[620px] h-px bg-gradient-to-r from-[var(--bb-gray)]/10 via-[var(--bb-gray)]/5 to-transparent" />
+      </div>
     </div>
   );
 }
