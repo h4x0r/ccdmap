@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
+  Controls,
   useNodesState,
   useEdgesState,
   type Node,
@@ -316,6 +317,11 @@ export function TopologyGraph() {
           gap={40}
           size={1}
           style={{ opacity: 0.03 }}
+        />
+        <Controls
+          showInteractive={false}
+          className="!bg-[var(--bb-panel)] !border-[var(--bb-border)] [&>button]:!bg-[var(--bb-black)] [&>button]:!border-[var(--bb-border)] [&>button]:!text-[var(--bb-gray)] [&>button:hover]:!bg-[var(--bb-orange)] [&>button:hover]:!text-[var(--bb-black)]"
+          style={{ bottom: 20, left: 20 }}
         />
       </ReactFlow>
     </div>
