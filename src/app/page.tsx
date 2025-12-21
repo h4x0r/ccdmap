@@ -691,6 +691,12 @@ function DesktopHome() {
                         {selectedNode.bakingCommitteeMember === 'ActiveInCommittee' ? `#${selectedNode.consensusBakerId}` : 'NO'}
                       </span>
                     </div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">Finalizer</span>
+                      <span className={`bb-forensic-value ${selectedNode.finalizationCommitteeMember ? 'text-[var(--bb-cyan)]' : ''}`}>
+                        {selectedNode.finalizationCommitteeMember ? 'YES' : 'NO'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Network */}
@@ -712,6 +718,33 @@ function DesktopHome() {
                       <span className="bb-forensic-label">BW Out</span>
                       <span className="bb-forensic-value">{selectedNode.averageBytesPerSecondOut ? `${(selectedNode.averageBytesPerSecondOut / 1024).toFixed(1)} KB/s` : 'N/A'}</span>
                     </div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">Packets</span>
+                      <span className="bb-forensic-value text-[var(--bb-gray)]">
+                        ↓{(selectedNode.packetsReceived / 1000000).toFixed(1)}M ↑{(selectedNode.packetsSent / 1000000).toFixed(1)}M
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Timing */}
+                  <div className="bb-forensic-section">
+                    <div className="bb-forensic-section-header">TIMING</div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">Block Period</span>
+                      <span className="bb-forensic-value">{selectedNode.blockArrivePeriodEMA?.toFixed(2) ?? 'N/A'}s</span>
+                    </div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">Fin Period</span>
+                      <span className="bb-forensic-value">{selectedNode.finalizationPeriodEMA?.toFixed(2) ?? 'N/A'}s</span>
+                    </div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">Blocks Recv</span>
+                      <span className="bb-forensic-value">{selectedNode.blocksReceivedCount.toLocaleString()}</span>
+                    </div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">Finalizations</span>
+                      <span className="bb-forensic-value">{selectedNode.finalizationCount.toLocaleString()}</span>
+                    </div>
                   </div>
 
                   {/* Blockchain */}
@@ -732,6 +765,22 @@ function DesktopHome() {
                         displayValue={`${selectedNode.bestBlock?.slice(0, 16)}...`}
                         className="bb-forensic-value hash"
                       />
+                    </div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">Fin Block</span>
+                      <CopyableTooltip
+                        value={selectedNode.finalizedBlock ?? ''}
+                        displayValue={`${selectedNode.finalizedBlock?.slice(0, 16)}...`}
+                        className="bb-forensic-value hash"
+                      />
+                    </div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">TXs/Block</span>
+                      <span className="bb-forensic-value">{selectedNode.transactionsPerBlockEMA?.toFixed(2) ?? 'N/A'}</span>
+                    </div>
+                    <div className="bb-forensic-row">
+                      <span className="bb-forensic-label">Last Baker</span>
+                      <span className="bb-forensic-value text-[var(--bb-magenta)]">#{selectedNode.bestBlockBakerId ?? 'N/A'}</span>
                     </div>
                   </div>
 
