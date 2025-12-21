@@ -1172,6 +1172,44 @@
 }
 
 /* ============================================
+   ENERGY FLOW EDGE ANIMATION
+   Pulsating glow effect for connected edges
+   ============================================ */
+
+@keyframes energy-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px var(--concordium-teal)) drop-shadow(0 0 4px var(--concordium-teal));
+    stroke-opacity: 0.8;
+  }
+  50% {
+    filter: drop-shadow(0 0 6px var(--concordium-teal)) drop-shadow(0 0 12px var(--concordium-teal)) drop-shadow(0 0 20px rgba(0, 204, 255, 0.4));
+    stroke-opacity: 1;
+  }
+}
+
+@keyframes energy-flow {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Applied to ReactFlow edge paths when connected to selected node */
+.react-flow__edge.energy-active path {
+  stroke: var(--concordium-teal) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 8 4 !important;
+  animation: energy-pulse 1.5s ease-in-out infinite, energy-flow 0.8s linear infinite !important;
+}
+
+/* Extra glow layer for more dramatic effect */
+.react-flow__edge.energy-active path.react-flow__edge-path {
+  filter: drop-shadow(0 0 4px var(--concordium-teal));
+}
+
+/* ============================================
    BLOOMBERG MRTG CHARTS
    MRTG-style historical monitoring charts
    ============================================ */

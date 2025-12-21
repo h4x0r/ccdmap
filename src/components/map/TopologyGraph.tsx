@@ -362,7 +362,7 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
     onNodeSelect?.(null);
   }, [selectNode, onNodeSelect]);
 
-  // Style edges - cyberpunk aesthetic with teal highlights
+  // Style edges - cyberpunk aesthetic with teal highlights and energy animation
   const styledEdges = useMemo((): Edge[] => {
     return edges.map((edge: Edge) => {
       const isConnectedToSelected = Boolean(
@@ -372,13 +372,14 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
 
       return {
         ...edge,
+        className: isConnectedToSelected ? 'energy-active' : '',
         style: {
           stroke: isConnectedToSelected ? 'var(--concordium-teal)' : 'rgba(100, 116, 139, 0.5)',
           strokeWidth: isConnectedToSelected ? 2.5 : 1,
           opacity: selectedNodeId ? (isConnectedToSelected ? 1 : 0.15) : 0.5,
-          filter: isConnectedToSelected ? 'drop-shadow(0 0 3px var(--concordium-teal-glow))' : 'none',
         },
-        animated: isConnectedToSelected,
+        // Disable default animation - we use custom CSS animation instead
+        animated: false,
       };
     });
   }, [edges, selectedNodeId]);
