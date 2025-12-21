@@ -30,36 +30,31 @@ export function HealthTimeline({
   timeRangeMinutes = 60,
   intervalMinutes = 5,
 }: HealthTimelineProps) {
-  // Calculate the display window
+  // Calculate actual time span from data
   const now = data.length > 0 ? data[data.length - 1].timestamp : Date.now();
-  const windowStart = now - timeRangeMinutes * 60 * 1000;
-  const windowEnd = now;
-  const windowDuration = windowEnd - windowStart;
+  const oldest = data.length > 0 ? data[0].timestamp : now;
+  const actualSpanMinutes = Math.round((now - oldest) / 60000);
 
-  // Generate time markers every 5 minutes (matching data interval)
+  // Generate time markers based on actual data points
   const markers: { position: number; label: string; showLabel: boolean }[] = [];
-  const numBlocks = Math.floor(timeRangeMinutes / intervalMinutes); // 12 blocks for 60min/5min
 
-  for (let i = 0; i <= numBlocks; i++) {
-    const position = (i / numBlocks) * 100;
-    const minutesAgo = timeRangeMinutes - (i * intervalMinutes);
-    const label = minutesAgo === 0 ? 'now' : `-${minutesAgo}m`;
-    // Show label every 15 minutes (every 3rd block) to avoid crowding
-    const showLabel = minutesAgo % 15 === 0 || minutesAgo === 0;
-    markers.push({ position, label, showLabel });
+  if (data.length > 0) {
+    // Create marker for each data point position
+    data.forEach((d, i) => {
+      const position = (i / data.length) * 100 + (50 / data.length); // center of segment
+      const minutesAgo = Math.round((now - d.timestamp) / 60000);
+      const label = minutesAgo <= 1 ? 'now' : `-${minutesAgo}m`;
+      // Show label every ~15 minutes or at edges
+      const showLabel = i === 0 || i === data.length - 1 || minutesAgo % 15 < intervalMinutes;
+      markers.push({ position, label, showLabel });
+    });
   }
 
-  // Calculate segment positions based on actual timestamps
-  // Each data point represents data collected at that timestamp
-  // The segment extends from that point to the next (or to now for the last one)
+  // Each data point gets equal width, filling the entire bar
+  // Rightmost = most recent (now), leftmost = oldest
   const segments = data.map((d, i) => {
-    const segmentStart = d.timestamp;
-    const segmentEnd = i < data.length - 1 ? data[i + 1].timestamp : windowEnd;
-
-    // Calculate position and width as percentage of window
-    const left = Math.max(0, ((segmentStart - windowStart) / windowDuration) * 100);
-    const right = Math.min(100, ((segmentEnd - windowStart) / windowDuration) * 100);
-    const width = right - left;
+    const width = 100 / data.length;
+    const left = i * width;
 
     return {
       ...d,
@@ -71,7 +66,7 @@ export function HealthTimeline({
         hour12: false
       }),
     };
-  }).filter(s => s.width > 0 && s.left < 100); // Only show segments in view
+  });
 
   return (
     <div className="health-timeline" style={{ height: showLabels ? height + 20 : height }}>
@@ -106,18 +101,18 @@ export function HealthTimeline({
           />
         ))}
 
-        {/* Time marker ticks - every 5 min block */}
-        {showLabels && markers.map((m, i) => (
+        {/* Segment boundary ticks */}
+        {showLabels && segments.map((s, i) => (
           <div
             key={i}
             style={{
               position: 'absolute',
-              left: `${m.position}%`,
+              left: `${s.left}%`,
               top: 0,
               width: '1px',
-              height: m.showLabel ? '100%' : '30%',
+              height: '100%',
               background: 'var(--bb-border)',
-              opacity: m.showLabel ? 0.6 : 0.3,
+              opacity: 0.4,
             }}
           />
         ))}
