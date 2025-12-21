@@ -507,8 +507,8 @@ function DesktopHome() {
                       onClick={() => selectNode(node.nodeId)}
                       style={{ cursor: 'pointer' }}
                     >
-                      <td className="text-[var(--bb-cyan)]" style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {node.nodeName || node.nodeId.slice(0, 8)}
+                      <td className="text-[var(--bb-cyan)]" style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {node.nodeName || node.nodeId.slice(0, 12)}
                       </td>
                       <td className="num">{node.peersCount}</td>
                       <td className="num">{node.finalizedBlockHeight}</td>
