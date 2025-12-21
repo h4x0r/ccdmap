@@ -11,6 +11,8 @@ export interface HealthTimelineProps {
   data: HealthStatus[];
   showLabels?: boolean;
   height?: number;
+  /** Time range in minutes (for label display) */
+  timeRangeMinutes?: number;
 }
 
 const STATUS_COLORS = {
@@ -23,7 +25,22 @@ export function HealthTimeline({
   data,
   showLabels = false,
   height = 16,
+  timeRangeMinutes = 60,
 }: HealthTimelineProps) {
+  // Calculate time range from data if available, otherwise use prop
+  const actualRange = data.length >= 2
+    ? Math.round((data[data.length - 1].timestamp - data[0].timestamp) / 60000)
+    : timeRangeMinutes;
+
+  // Format time label (e.g., 60 -> "1h", 30 -> "30m")
+  const formatTimeLabel = (minutes: number) => {
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hours}h${mins}m` : `${hours}h`;
+    }
+    return `${minutes}m`;
+  };
   return (
     <div className="health-timeline" style={{ height: showLabels ? height + 16 : height }}>
       <div
@@ -65,7 +82,8 @@ export function HealthTimeline({
             color: 'var(--bb-gray)',
           }}
         >
-          <span>-15m</span>
+          <span>-{formatTimeLabel(actualRange)}</span>
+          <span style={{ opacity: 0.6 }}>-{formatTimeLabel(Math.round(actualRange / 2))}</span>
           <span>now</span>
         </div>
       )}
