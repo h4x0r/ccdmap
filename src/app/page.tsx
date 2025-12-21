@@ -210,7 +210,7 @@ function DesktopHome() {
   // Fetch real per-node history data from Turso
   const { data: nodeHistoryData, isLoading: isHistoryLoading, isError: isHistoryError, dataPoints: historyDataPoints } = useNodeHistory(
     selectedNode?.nodeId ?? null,
-    15 // 15 minutes of history
+    60 // 60 minutes of history (wider window to handle cron gaps)
   );
 
   // Get sparkline data - prefer Turso data when available
