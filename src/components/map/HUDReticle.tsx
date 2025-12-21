@@ -20,11 +20,11 @@ const TIER_CONFIG = {
   edge: { radius: 18, stroke: 1 },
 };
 
-// Health-based colors and animation speeds
+// Health-based colors, animation speeds, and opacity
 const HEALTH_CONFIG = {
-  healthy: { color: '#FFB800', duration: 8 },    // Gold, slow
-  lagging: { color: '#FF8C00', duration: 5 },    // Orange, medium
-  issue: { color: '#FF4444', duration: 3 },      // Red, fast
+  healthy: { color: '#FFB800', duration: 8, opacity: 0.15 },    // Gold, slow, very translucent
+  lagging: { color: '#FF8C00', duration: 5, opacity: 0.5 },     // Orange, medium
+  issue: { color: '#FF4444', duration: 3, opacity: 0.6 },       // Red, fast
 };
 
 // Selected state uses cyan
@@ -64,7 +64,7 @@ export const HUDReticle = memo(function HUDReticle({
 
   const color = selected ? SELECTED_COLOR : healthConfig.color;
   const duration = selected ? 2 : healthConfig.duration;
-  const opacity = selected ? 0.9 : 0.5;
+  const opacity = selected ? 0.9 : healthConfig.opacity;
 
   // Connected peers just get corner brackets
   if (isConnectedPeer && !selected) {

@@ -413,15 +413,16 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
         {/* JARVIS Audio Mute Toggle */}
         <button
           onClick={toggleMute}
-          className="absolute bottom-5 left-32 z-10 px-2 py-1 text-[10px] font-mono border transition-colors"
+          className="absolute z-10 w-7 h-7 flex items-center justify-center text-sm border transition-colors"
           style={{
+            bottom: 20,
+            left: 56,
             backgroundColor: isMuted ? 'var(--bb-panel)' : 'var(--bb-black)',
             borderColor: isMuted ? 'var(--bb-gray)' : 'var(--bb-cyan)',
-            color: isMuted ? 'var(--bb-gray)' : 'var(--bb-cyan)',
           }}
           title={isMuted ? 'Enable JARVIS sounds' : 'Mute JARVIS sounds'}
         >
-          {isMuted ? '🔇 MUTED' : '🔊 JARVIS'}
+          {isMuted ? '🔇' : '🔊'}
         </button>
         <TierLabels tierLabels={tierLabels} tierSeparators={tierSeparators} />
       </ReactFlow>
