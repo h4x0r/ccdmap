@@ -410,13 +410,13 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
           className="!bg-[var(--bb-panel)] !border-[var(--bb-border)] [&>button]:!bg-[var(--bb-black)] [&>button]:!border-[var(--bb-border)] [&>button]:!text-[var(--bb-gray)] [&>button:hover]:!bg-[var(--bb-orange)] [&>button:hover]:!text-[var(--bb-black)]"
           style={{ bottom: 20, left: 20 }}
         />
-        {/* JARVIS Audio Mute Toggle */}
+        {/* JARVIS Audio Mute Toggle - positioned directly below Controls */}
         <button
           onClick={toggleMute}
-          className="absolute z-10 w-7 h-7 flex items-center justify-center text-sm transition-opacity hover:opacity-80"
+          className="react-flow__controls absolute z-10 w-[26px] h-[26px] flex items-center justify-center text-sm !bg-[var(--bb-black)] !border-[var(--bb-border)] border transition-opacity hover:opacity-80"
           style={{
-            bottom: -12,
-            left: 20,
+            bottom: 0,
+            left: 23,
             opacity: isMuted ? 0.4 : 1,
           }}
           title={isMuted ? 'Enable JARVIS sounds' : 'Mute JARVIS sounds'}
