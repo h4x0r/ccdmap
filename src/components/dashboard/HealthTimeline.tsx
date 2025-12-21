@@ -35,20 +35,12 @@ export function HealthTimeline({
   const oldest = data.length > 0 ? data[0].timestamp : now;
   const actualSpanMinutes = Math.round((now - oldest) / 60000);
 
-  // Generate time markers based on actual data points
-  const markers: { position: number; label: string; showLabel: boolean }[] = [];
-
-  if (data.length > 0) {
-    // Create marker for each data point position
-    data.forEach((d, i) => {
-      const position = (i / data.length) * 100 + (50 / data.length); // center of segment
-      const minutesAgo = Math.round((now - d.timestamp) / 60000);
-      const label = minutesAgo <= 1 ? 'now' : `-${minutesAgo}m`;
-      // Show label every ~15 minutes or at edges
-      const showLabel = i === 0 || i === data.length - 1 || minutesAgo % 15 < intervalMinutes;
-      markers.push({ position, label, showLabel });
-    });
-  }
+  // Simple markers: just start and end
+  const startLabel = actualSpanMinutes > 0 ? `-${actualSpanMinutes}m` : '';
+  const markers = [
+    { position: 0, label: startLabel },
+    { position: 100, label: 'now' },
+  ];
 
   // Each data point gets equal width, filling the entire bar
   // Rightmost = most recent (now), leftmost = oldest
@@ -118,32 +110,21 @@ export function HealthTimeline({
         ))}
       </div>
 
-      {/* Time labels */}
+      {/* Time labels - just start and end */}
       {showLabels && (
         <div
           className="health-timeline-labels"
           style={{
-            position: 'relative',
-            height: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
             marginTop: '2px',
             fontSize: '8px',
             fontFamily: 'var(--font-mono)',
             color: 'var(--bb-gray)',
           }}
         >
-          {markers.filter(m => m.showLabel).map((m, i) => (
-            <span
-              key={i}
-              style={{
-                position: 'absolute',
-                left: `${m.position}%`,
-                transform: 'translateX(-50%)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {m.label}
-            </span>
-          ))}
+          <span>{markers[0].label}</span>
+          <span>{markers[1].label}</span>
         </div>
       )}
     </div>
