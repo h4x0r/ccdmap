@@ -58,6 +58,9 @@ export default function Home() {
 
   // Find selected node from nodes array
   const selectedNode = nodes?.find(n => n.nodeId === selectedNodeId) ?? null;
+
+  // Create a Set of known node IDs for quick lookup (used for peer availability check)
+  const knownNodeIds = useMemo(() => new Set(nodes?.map(n => n.nodeId) ?? []), [nodes]);
   const { history, addSnapshot } = useMetricHistory();
   const currentTime = useCurrentTime();
   const [commandInput, setCommandInput] = useState('');
@@ -605,17 +608,27 @@ export default function Home() {
                   {/* Connected Peers */}
                   {selectedNode.peersList.length > 0 && (
                     <div className="bb-forensic-section">
-                      <div className="bb-forensic-section-header">CONNECTED PEERS ({selectedNode.peersList.length})</div>
+                      <div className="bb-forensic-section-header">
+                        CONNECTED PEERS ({selectedNode.peersList.length})
+                        <span className="text-[var(--bb-gray)] font-normal ml-2 text-[8px]">
+                          {selectedNode.peersList.filter(id => knownNodeIds.has(id)).length} in dashboard
+                        </span>
+                      </div>
                       <div className="bb-peer-list">
-                        {selectedNode.peersList.slice(0, 20).map((peerId) => (
-                          <span
-                            key={peerId}
-                            className="bb-peer-tag"
-                            onClick={() => selectNode(peerId)}
-                          >
-                            {peerId.slice(0, 8)}
-                          </span>
-                        ))}
+                        {selectedNode.peersList.slice(0, 20).map((peerId) => {
+                          const isAvailable = knownNodeIds.has(peerId);
+                          return (
+                            <span
+                              key={peerId}
+                              className={`bb-peer-tag ${!isAvailable ? 'bb-peer-unavailable' : ''}`}
+                              onClick={() => isAvailable && selectNode(peerId)}
+                              title={isAvailable ? 'Click to select this peer' : 'Peer not reporting to dashboard'}
+                            >
+                              {peerId.slice(0, 8)}
+                              {!isAvailable && <span className="bb-peer-external">EXT</span>}
+                            </span>
+                          );
+                        })}
                         {selectedNode.peersList.length > 20 && (
                           <span className="bb-peer-more">+{selectedNode.peersList.length - 20} more</span>
                         )}

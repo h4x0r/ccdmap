@@ -1,6 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -870,6 +870,28 @@
   background: var(--bb-orange-dim);
   border-color: var(--bb-orange);
   color: var(--bb-orange);
+}
+
+.bb-peer-unavailable {
+  color: var(--bb-gray-dim);
+  border-color: var(--bb-border);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.bb-peer-unavailable:hover {
+  background: var(--bb-panel);
+  border-color: var(--bb-border);
+  color: var(--bb-gray-dim);
+}
+
+.bb-peer-external {
+  font-size: 7px;
+  margin-left: 3px;
+  padding: 1px 2px;
+  background: var(--bb-gray-dim);
+  color: var(--bb-black);
+  vertical-align: middle;
 }
 
 .bb-peer-more {
