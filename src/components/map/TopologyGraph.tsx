@@ -7,6 +7,7 @@ import {
   Controls,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeProps,
@@ -190,6 +191,76 @@ const nodeTypes = {
   concordiumNode: ConcordiumNodeComponent,
 };
 
+// Tier label positions in graph coordinates (from layout.ts tierConfig)
+const TIER_LABELS = [
+  { tier: 'BAKERS', y: 80, color: 'rgb(168, 85, 247)', opacity: 0.6 },
+  { tier: 'HUBS', y: 250, color: 'var(--bb-cyan)', opacity: 0.4 },
+  { tier: 'STANDARD', y: 480, color: 'var(--bb-gray)', opacity: 0.3 },
+  { tier: 'EDGE', y: 750, color: 'var(--bb-gray)', opacity: 0.2 },
+] as const;
+
+// Tier separator line positions (between tiers)
+const TIER_SEPARATORS = [
+  { y: 165, color: 'rgb(168, 85, 247)', opacity: 0.2 },
+  { y: 365, color: 'var(--bb-cyan)', opacity: 0.15 },
+  { y: 615, color: 'var(--bb-gray)', opacity: 0.1 },
+] as const;
+
+/**
+ * Renders tier labels that follow the viewport zoom/pan
+ * Must be rendered inside ReactFlowProvider context
+ */
+function TierLabels() {
+  const { getViewport } = useReactFlow();
+  const viewport = getViewport();
+
+  // Scale font size inversely with zoom to keep labels readable
+  const fontSize = Math.max(8, Math.min(12, 10 / viewport.zoom));
+
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none overflow-visible"
+      style={{
+        transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+        transformOrigin: '0 0',
+      }}
+    >
+      {/* Tier Labels - positioned in graph coordinates */}
+      {TIER_LABELS.map(({ tier, y, color, opacity }) => (
+        <div
+          key={tier}
+          className="absolute font-mono font-bold tracking-widest"
+          style={{
+            left: -60,
+            top: y - 5,
+            color,
+            opacity,
+            fontSize: `${fontSize}px`,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {tier}
+        </div>
+      ))}
+
+      {/* Tier Separator Lines - positioned in graph coordinates */}
+      {TIER_SEPARATORS.map(({ y, color, opacity }, i) => (
+        <div
+          key={i}
+          className="absolute h-px"
+          style={{
+            left: -60,
+            top: y,
+            width: 2000,
+            background: `linear-gradient(to right, ${color}, transparent)`,
+            opacity,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="w-full h-full flex items-center justify-center">
@@ -352,27 +423,8 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
           className="!bg-[var(--bb-panel)] !border-[var(--bb-border)] [&>button]:!bg-[var(--bb-black)] [&>button]:!border-[var(--bb-border)] [&>button]:!text-[var(--bb-gray)] [&>button:hover]:!bg-[var(--bb-orange)] [&>button:hover]:!text-[var(--bb-black)]"
           style={{ bottom: 20, left: 20 }}
         />
+        <TierLabels />
       </ReactFlow>
-
-      {/* Tier Labels - Bloomberg style */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute left-4 top-[60px] text-[10px] font-mono font-bold text-purple-500/60 tracking-widest">
-          BAKERS
-        </div>
-        <div className="absolute left-4 top-[230px] text-[10px] font-mono font-bold text-[var(--bb-cyan)]/40 tracking-widest">
-          HUBS
-        </div>
-        <div className="absolute left-4 top-[460px] text-[10px] font-mono font-bold text-[var(--bb-gray)]/30 tracking-widest">
-          STANDARD
-        </div>
-        <div className="absolute left-4 top-[730px] text-[10px] font-mono font-bold text-[var(--bb-gray)]/20 tracking-widest">
-          EDGE
-        </div>
-        {/* Tier separator lines */}
-        <div className="absolute left-0 right-0 top-[180px] h-px bg-gradient-to-r from-purple-500/20 via-purple-500/10 to-transparent" />
-        <div className="absolute left-0 right-0 top-[380px] h-px bg-gradient-to-r from-[var(--bb-cyan)]/15 via-[var(--bb-cyan)]/5 to-transparent" />
-        <div className="absolute left-0 right-0 top-[620px] h-px bg-gradient-to-r from-[var(--bb-gray)]/10 via-[var(--bb-gray)]/5 to-transparent" />
-      </div>
     </div>
   );
 }
