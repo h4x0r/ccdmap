@@ -15,6 +15,7 @@ import { MRTGChart, type MRTGDataPoint } from '@/components/dashboard/MRTGChart'
 import { NodeDetailPanel } from '@/components/dashboard/NodeDetailPanel';
 import { type HealthStatus } from '@/components/dashboard/HealthTimeline';
 import { MobileHome } from '@/components/mobile/MobileHome';
+import { CopyableTooltip } from '@/components/ui/CopyableTooltip';
 
 // Dynamic imports for heavy map components
 const TopologyGraph = dynamic(
@@ -651,7 +652,11 @@ function DesktopHome() {
                     <div className="bb-forensic-section-header">IDENTITY</div>
                     <div className="bb-forensic-row">
                       <span className="bb-forensic-label">Node ID</span>
-                      <span className="bb-forensic-value mono" title={selectedNode.nodeId} style={{ cursor: 'help' }}>{selectedNode.nodeId.slice(0, 24)}...</span>
+                      <CopyableTooltip
+                        value={selectedNode.nodeId}
+                        displayValue={`${selectedNode.nodeId.slice(0, 24)}...`}
+                        className="bb-forensic-value mono"
+                      />
                     </div>
                     <div className="bb-forensic-row">
                       <span className="bb-forensic-label">Name</span>
@@ -722,7 +727,11 @@ function DesktopHome() {
                     </div>
                     <div className="bb-forensic-row">
                       <span className="bb-forensic-label">Best Block</span>
-                      <span className="bb-forensic-value hash" title={selectedNode.bestBlock ?? ''} style={{ cursor: 'help' }}>{selectedNode.bestBlock?.slice(0, 16)}...</span>
+                      <CopyableTooltip
+                        value={selectedNode.bestBlock ?? ''}
+                        displayValue={`${selectedNode.bestBlock?.slice(0, 16)}...`}
+                        className="bb-forensic-value hash"
+                      />
                     </div>
                   </div>
 
