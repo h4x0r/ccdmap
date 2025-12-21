@@ -56,12 +56,12 @@ function formatDate(date: Date) {
 export default function Home() {
   const isMobile = useIsMobile();
 
-  // Render mobile layout on small screens
+  // Render mobile layout on narrow screens
   if (isMobile) {
     return <MobileHome />;
   }
 
-  // Desktop layout below
+  // Desktop layout
   return <DesktopHome />;
 }
 

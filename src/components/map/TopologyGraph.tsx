@@ -223,7 +223,6 @@ function LoadingSkeleton() {
 }
 
 interface TopologyGraphProps {
-  /** Optional callback when a node is selected - used for mobile navigation */
   onNodeSelect?: (nodeId: string | null) => void;
 }
 
@@ -270,14 +269,13 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      // If clicking the same node that's already selected, trigger navigation
-      if (selectedNodeId === node.id && onNodeSelect) {
+      if (onNodeSelect) {
         onNodeSelect(node.id);
       } else {
         selectNode(node.id);
       }
     },
-    [selectNode, selectedNodeId, onNodeSelect]
+    [selectNode, onNodeSelect]
   );
 
   const onPaneClick = useCallback(() => {
