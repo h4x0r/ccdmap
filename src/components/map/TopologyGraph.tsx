@@ -217,10 +217,12 @@ function TierLabels({ tierLabels, tierSeparators }: TierLabelsProps) {
 
   return (
     <div
-      className="absolute inset-0 pointer-events-none overflow-visible"
+      className="absolute inset-0 overflow-visible"
       style={{
         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
         transformOrigin: '0 0',
+        pointerEvents: 'none',
+        zIndex: 0,
       }}
     >
       {/* Tier Labels - positioned in graph coordinates */}
@@ -237,6 +239,7 @@ function TierLabels({ tierLabels, tierSeparators }: TierLabelsProps) {
               opacity: colors.opacity,
               fontSize: `${fontSize}px`,
               whiteSpace: 'nowrap',
+              pointerEvents: 'none',
             }}
           >
             {tier}
@@ -259,6 +262,7 @@ function TierLabels({ tierLabels, tierSeparators }: TierLabelsProps) {
               width: 2000,
               background: `linear-gradient(to right, ${colors.color}, transparent)`,
               opacity: colors.separatorOpacity,
+              pointerEvents: 'none',
             }}
           />
         );
