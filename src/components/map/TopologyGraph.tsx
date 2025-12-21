@@ -426,6 +426,7 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
         fitView
         minZoom={0.1}
         maxZoom={2}
+        nodesDraggable={false}
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           style: { stroke: 'rgba(100, 116, 139, 0.5)', strokeWidth: 1, opacity: 0.5 },
