@@ -36,17 +36,17 @@ export function HealthTimeline({
   const windowEnd = now;
   const windowDuration = windowEnd - windowStart;
 
-  // Generate time markers every 15 minutes
-  const markers: { position: number; label: string }[] = [];
-  const markerInterval = 15 * 60 * 1000; // 15 minutes
+  // Generate time markers every 5 minutes (matching data interval)
+  const markers: { position: number; label: string; showLabel: boolean }[] = [];
+  const numBlocks = Math.floor(timeRangeMinutes / intervalMinutes); // 12 blocks for 60min/5min
 
-  // Start from a round 15-minute mark
-  const firstMarkerTime = Math.ceil(windowStart / markerInterval) * markerInterval;
-  for (let t = firstMarkerTime; t <= windowEnd; t += markerInterval) {
-    const position = ((t - windowStart) / windowDuration) * 100;
-    const minutesAgo = Math.round((windowEnd - t) / 60000);
+  for (let i = 0; i <= numBlocks; i++) {
+    const position = (i / numBlocks) * 100;
+    const minutesAgo = timeRangeMinutes - (i * intervalMinutes);
     const label = minutesAgo === 0 ? 'now' : `-${minutesAgo}m`;
-    markers.push({ position, label });
+    // Show label every 15 minutes (every 3rd block) to avoid crowding
+    const showLabel = minutesAgo % 15 === 0 || minutesAgo === 0;
+    markers.push({ position, label, showLabel });
   }
 
   // Calculate segment positions based on actual timestamps
@@ -106,7 +106,7 @@ export function HealthTimeline({
           />
         ))}
 
-        {/* Time marker ticks */}
+        {/* Time marker ticks - every 5 min block */}
         {showLabels && markers.map((m, i) => (
           <div
             key={i}
@@ -115,9 +115,9 @@ export function HealthTimeline({
               left: `${m.position}%`,
               top: 0,
               width: '1px',
-              height: '100%',
+              height: m.showLabel ? '100%' : '30%',
               background: 'var(--bb-border)',
-              opacity: 0.5,
+              opacity: m.showLabel ? 0.6 : 0.3,
             }}
           />
         ))}
@@ -136,7 +136,7 @@ export function HealthTimeline({
             color: 'var(--bb-gray)',
           }}
         >
-          {markers.map((m, i) => (
+          {markers.filter(m => m.showLabel).map((m, i) => (
             <span
               key={i}
               style={{
