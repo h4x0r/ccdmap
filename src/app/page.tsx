@@ -6,6 +6,7 @@ import { useAppStore } from '@/hooks/useAppStore';
 import { useNetworkMetrics, useNodes } from '@/hooks/useNodes';
 import { useMetricHistory, type MetricSnapshot } from '@/hooks/useMetricHistory';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import { useAudio } from '@/hooks/useAudio';
 import { calculateNetworkPulse, getPulseStatus, THRESHOLDS, calculateFinalizationHealth, calculateLatencyHealth } from '@/lib/pulse';
 import { Sparkline } from '@/components/dashboard/Sparkline';
 import { MRTGChart, type MRTGDataPoint } from '@/components/dashboard/MRTGChart';
@@ -69,6 +70,7 @@ function DesktopHome() {
   const { currentView, setView, selectedNodeId, selectNode } = useAppStore();
   const { metrics: networkMetrics, dataUpdatedAt } = useNetworkMetrics();
   const { data: nodes } = useNodes();
+  const { playAcquisitionSequence } = useAudio();
 
   // Find selected node from nodes array
   const selectedNode = nodes?.find(n => n.nodeId === selectedNodeId) ?? null;
@@ -504,7 +506,10 @@ function DesktopHome() {
                     <tr
                       key={node.nodeId}
                       className={selectedNodeId === node.nodeId ? 'selected' : ''}
-                      onClick={() => selectNode(node.nodeId)}
+                      onClick={() => {
+                        playAcquisitionSequence();
+                        selectNode(node.nodeId);
+                      }}
                       style={{ cursor: 'pointer' }}
                     >
                       <td className="text-[var(--bb-cyan)]" style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -636,7 +641,12 @@ function DesktopHome() {
                             <span
                               key={peerId}
                               className={`bb-peer-tag ${!isAvailable ? 'bb-peer-unavailable' : ''}`}
-                              onClick={() => isAvailable && selectNode(peerId)}
+                              onClick={() => {
+                                if (isAvailable) {
+                                  playAcquisitionSequence();
+                                  selectNode(peerId);
+                                }
+                              }}
                               title={isAvailable ? 'Click to select this peer' : 'Peer not reporting to dashboard'}
                             >
                               {peerId.slice(0, 8)}
