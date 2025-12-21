@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDbClient, initializeSchema } from '@/lib/db/client';
 import { NodeTracker, type NodeSummary } from '@/lib/db/NodeTracker';
+import { calculateNetworkPulse } from '@/lib/pulse';
+import type { HealthStatus } from '@/lib/db/schema';
 
 // Concordium dashboard API
 const NODES_SUMMARY_URL = 'https://dashboard.mainnet.concordium.software/nodesSummary';
@@ -83,18 +85,90 @@ export async function POST(request: Request) {
     // Process nodes and detect changes
     const result = await tracker.processNodes(nodes, maxHeight);
 
+    // Calculate network-wide metrics
+    const now = Date.now();
+    const totalNodes = nodes.length;
+
+    // Health counts based on finalization lag
+    const calculateHealth = (lag: number, consensusRunning: boolean): HealthStatus => {
+      if (!consensusRunning) return 'issue';
+      if (lag <= 2) return 'healthy';
+      if (lag <= 5) return 'lagging';
+      return 'issue';
+    };
+
+    let healthyNodes = 0;
+    let laggingNodes = 0;
+    let issueNodes = 0;
+
+    for (const node of nodes) {
+      const lag = maxHeight - node.finalizedBlockHeight;
+      const health = calculateHealth(lag, node.consensusRunning);
+      if (health === 'healthy') healthyNodes++;
+      else if (health === 'lagging') laggingNodes++;
+      else issueNodes++;
+    }
+
+    // Average peers
+    const avgPeers = nodes.reduce((sum, n) => sum + n.peersCount, 0) / totalNodes;
+
+    // Average latency (only from nodes with ping data)
+    const nodesWithPing = nodes.filter(n => n.averagePing !== null && n.averagePing > 0);
+    const avgLatency = nodesWithPing.length > 0
+      ? nodesWithPing.reduce((sum, n) => sum + (n.averagePing ?? 0), 0) / nodesWithPing.length
+      : null;
+
+    // Max finalization lag (95th percentile approach)
+    const heights = nodes.map(n => n.finalizedBlockHeight).sort((a, b) => b - a);
+    const percentile95Index = Math.max(0, Math.floor(heights.length * 0.05));
+    const maxFinalizationLag = maxHeight - heights[percentile95Index];
+
+    // Consensus participation
+    const consensusNodes = nodes.filter(n => n.consensusRunning);
+    const consensusParticipation = (consensusNodes.length / totalNodes) * 100;
+
+    // Calculate pulse score using raw values
+    const pulseScore = calculateNetworkPulse({
+      finalizationTime: maxFinalizationLag,
+      latency: avgLatency ?? 50,
+      consensusRunning: consensusNodes.length,
+      totalNodes,
+    });
+
+    // Store network snapshot
+    await db.execute(
+      `INSERT INTO network_snapshots
+       (timestamp, total_nodes, healthy_nodes, lagging_nodes, issue_nodes,
+        avg_peers, avg_latency, max_finalization_lag, consensus_participation, pulse_score)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [now, totalNodes, healthyNodes, laggingNodes, issueNodes,
+       avgPeers, avgLatency, maxFinalizationLag, consensusParticipation, pulseScore]
+    );
+
     // Return summary
     return NextResponse.json({
       success: true,
-      timestamp: Date.now(),
+      timestamp: now,
       nodesPolled: nodes.length,
       maxHeight,
+      networkMetrics: {
+        totalNodes,
+        healthyNodes,
+        laggingNodes,
+        issueNodes,
+        avgPeers: Math.round(avgPeers),
+        avgLatency: avgLatency ? Math.round(avgLatency) : null,
+        maxFinalizationLag,
+        consensusParticipation: Math.round(consensusParticipation),
+        pulseScore: Math.round(pulseScore),
+      },
       changes: {
         newNodes: result.newNodes.length,
         disappeared: result.disappeared.length,
         reappeared: result.reappeared.length,
         restarts: result.restarts.length,
         healthChanges: result.healthChanges.length,
+        versionChanges: result.versionChanges.length,
       },
       snapshotsRecorded: result.snapshotsRecorded,
       // Include details for new nodes (for alerting)

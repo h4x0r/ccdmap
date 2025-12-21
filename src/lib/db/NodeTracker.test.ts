@@ -35,6 +35,7 @@ describe('NodeTracker', () => {
     await db.execute(SCHEMA.node_sessions);
     await db.execute(SCHEMA.snapshots);
     await db.execute(SCHEMA.events);
+    await db.execute(SCHEMA.network_snapshots);
     for (const indexSql of SCHEMA.indexes) {
       await db.execute(indexSql);
     }

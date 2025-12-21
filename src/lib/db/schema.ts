@@ -72,6 +72,26 @@ export const SCHEMA = {
   `,
 
   /**
+   * Network snapshots - aggregated network-wide metrics
+   * Stored every poll for network pulse/health trends
+   */
+  network_snapshots: `
+    CREATE TABLE IF NOT EXISTS network_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp INTEGER NOT NULL,
+      total_nodes INTEGER NOT NULL,
+      healthy_nodes INTEGER NOT NULL,
+      lagging_nodes INTEGER NOT NULL,
+      issue_nodes INTEGER NOT NULL,
+      avg_peers REAL,
+      avg_latency REAL,
+      max_finalization_lag INTEGER,
+      consensus_participation REAL,
+      pulse_score REAL
+    )
+  `,
+
+  /**
    * Indexes for common queries
    */
   indexes: [
@@ -81,6 +101,7 @@ export const SCHEMA = {
     'CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)',
     'CREATE INDEX IF NOT EXISTS idx_events_node ON events(node_id)',
     'CREATE INDEX IF NOT EXISTS idx_sessions_node ON node_sessions(node_id)',
+    'CREATE INDEX IF NOT EXISTS idx_network_snapshots_timestamp ON network_snapshots(timestamp)',
   ],
 } as const;
 
@@ -140,4 +161,21 @@ export interface EventRecord {
   old_value: string | null;
   new_value: string | null;
   metadata: string | null;
+}
+
+/**
+ * Network snapshot record from database
+ */
+export interface NetworkSnapshotRecord {
+  id: number;
+  timestamp: number;
+  total_nodes: number;
+  healthy_nodes: number;
+  lagging_nodes: number;
+  issue_nodes: number;
+  avg_peers: number | null;
+  avg_latency: number | null;
+  max_finalization_lag: number | null;
+  consensus_participation: number | null;
+  pulse_score: number | null;
 }

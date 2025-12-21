@@ -6,6 +6,7 @@ import { useAppStore } from '@/hooks/useAppStore';
 import { useNetworkMetrics, useNodes } from '@/hooks/useNodes';
 import { useMetricHistory, type MetricSnapshot } from '@/hooks/useMetricHistory';
 import { useNodeHistory } from '@/hooks/useNodeHistory';
+import { useNetworkHistory } from '@/hooks/useNetworkHistory';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useAudio } from '@/hooks/useAudio';
 import { calculateNetworkPulse, getPulseStatus, THRESHOLDS, calculateFinalizationHealth, calculateLatencyHealth } from '@/lib/pulse';
@@ -81,6 +82,7 @@ function DesktopHome() {
   // Create a Set of known node IDs for quick lookup (used for peer availability check)
   const knownNodeIds = useMemo(() => new Set(nodes?.map(n => n.nodeId) ?? []), [nodes]);
   const { history, addSnapshot } = useMetricHistory();
+  const { data: networkHistoryData } = useNetworkHistory(15); // 15 minutes of network-wide history from Turso
   const currentTime = useCurrentTime();
   const [commandInput, setCommandInput] = useState('');
   const [sortColumn, setSortColumn] = useState<'name' | 'peers' | 'fin' | 'status'>('peers');
@@ -205,47 +207,60 @@ function DesktopHome() {
   const secondsUntilRefresh = Math.max(0, 30 - secondsAgo);
 
   // Fetch real per-node history data from Turso
-  const { data: nodeHistoryData, isLoading: isHistoryLoading } = useNodeHistory(
+  const { data: nodeHistoryData, isLoading: isHistoryLoading, isError: isHistoryError, dataPoints: historyDataPoints } = useNodeHistory(
     selectedNode?.nodeId ?? null,
     15 // 15 minutes of history
   );
 
-  // Get sparkline data
-  const pulseHistory = history.map(h => h.pulse);
-  const nodesHistory = history.map(h => h.nodes);
+  // Get sparkline data - prefer Turso data when available
+  const pulseSparkline = networkHistoryData?.pulseHistory.map(h => h.value) ?? history.map(h => h.pulse);
+  const nodesSparkline = networkHistoryData?.nodesHistory.map(h => h.value) ?? history.map(h => h.nodes);
 
   // Convert history to MRTG chart data format with HEALTH SCORES (0-100)
   // These are the 3 components that make up the pulse score:
   // - 40% finalization health (sync lag)
   // - 30% latency health
   // - 30% consensus health
+  // Prefer Turso data when available, fall back to in-memory history
   const pulseChartData = useMemo((): MRTGDataPoint[] =>
-    history.map(h => ({ timestamp: h.timestamp, value: h.pulse })),
-    [history]
+    networkHistoryData?.pulseHistory ?? history.map(h => ({ timestamp: h.timestamp, value: h.pulse })),
+    [networkHistoryData, history]
   );
 
-  const finalizationHealthData = useMemo((): MRTGDataPoint[] =>
-    history.map(h => ({
+  const finalizationHealthData = useMemo((): MRTGDataPoint[] => {
+    if (networkHistoryData?.finalizationLagHistory.length) {
+      // Convert lag values to health scores
+      return networkHistoryData.finalizationLagHistory.map(h => ({
+        timestamp: h.timestamp,
+        value: calculateFinalizationHealth(h.value),
+      }));
+    }
+    return history.map(h => ({
       timestamp: h.timestamp,
       value: calculateFinalizationHealth(h.finalizationTime),
-    })),
-    [history]
-  );
+    }));
+  }, [networkHistoryData, history]);
 
-  const latencyHealthData = useMemo((): MRTGDataPoint[] =>
-    history.map(h => ({
+  const latencyHealthData = useMemo((): MRTGDataPoint[] => {
+    if (networkHistoryData?.latencyHistory.length) {
+      // Convert latency values to health scores
+      return networkHistoryData.latencyHistory.map(h => ({
+        timestamp: h.timestamp,
+        value: calculateLatencyHealth(h.value),
+      }));
+    }
+    return history.map(h => ({
       timestamp: h.timestamp,
       value: calculateLatencyHealth(h.latency),
-    })),
-    [history]
-  );
+    }));
+  }, [networkHistoryData, history]);
 
   const consensusHealthData = useMemo((): MRTGDataPoint[] =>
-    history.map(h => ({
+    networkHistoryData?.consensusHistory ?? history.map(h => ({
       timestamp: h.timestamp,
       value: h.consensus, // Already 0-100 percentage
     })),
-    [history]
+    [networkHistoryData, history]
   );
 
   return (
@@ -343,7 +358,7 @@ function DesktopHome() {
                 </span>
               </div>
               <div className="bb-metric-spark">
-                <Sparkline data={pulseHistory} min={0} max={100} maxBars={20} />
+                <Sparkline data={pulseSparkline} min={0} max={100} maxBars={20} />
               </div>
             </div>
           </div>
@@ -354,7 +369,7 @@ function DesktopHome() {
               <span className="bb-metric-label">Nodes</span>
               <span className="bb-metric-value">{currentMetrics.nodes}</span>
               <div className="bb-metric-spark">
-                <Sparkline data={nodesHistory} maxBars={12} />
+                <Sparkline data={nodesSparkline} maxBars={12} />
               </div>
             </div>
             <div className="bb-metric">
@@ -453,7 +468,32 @@ function DesktopHome() {
                 }}>
                   Loading history for {selectedNode.nodeName || selectedNode.nodeId}...
                 </div>
-              ) : nodeHistoryData ? (
+              ) : isHistoryError ? (
+                <div className="bb-node-detail-error" style={{
+                  padding: '16px',
+                  background: 'var(--bb-panel-bg)',
+                  border: '1px solid var(--bb-red)',
+                  color: 'var(--bb-red)',
+                  fontSize: '12px',
+                }}>
+                  Error loading history for {selectedNode.nodeName || selectedNode.nodeId}.
+                  <br />
+                  <span style={{ color: 'var(--bb-gray)' }}>Check console for details.</span>
+                  <button
+                    onClick={() => selectNode(null)}
+                    style={{
+                      marginLeft: '12px',
+                      padding: '2px 8px',
+                      background: 'var(--bb-border)',
+                      border: 'none',
+                      color: 'var(--bb-text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : nodeHistoryData && historyDataPoints > 0 ? (
                 <NodeDetailPanel
                   nodeId={selectedNode.nodeId}
                   nodeName={selectedNode.nodeName || 'Unnamed Node'}
@@ -474,7 +514,9 @@ function DesktopHome() {
                 }}>
                   No history data yet for {selectedNode.nodeName || selectedNode.nodeId}.
                   <br />
-                  <span style={{ color: 'var(--bb-gray)' }}>Data collection started - check back in a few minutes.</span>
+                  <span style={{ color: 'var(--bb-gray)' }}>
+                    {historyDataPoints === 0 ? 'Cron is running but no snapshots stored yet.' : 'Data collection started - check back in a few minutes.'}
+                  </span>
                   <button
                     onClick={() => selectNode(null)}
                     style={{
