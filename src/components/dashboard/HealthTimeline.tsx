@@ -110,21 +110,34 @@ export function HealthTimeline({
         ))}
       </div>
 
-      {/* Time labels - just start and end */}
+      {/* Time labels - one for each segment */}
       {showLabels && (
         <div
           className="health-timeline-labels"
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
             marginTop: '2px',
-            fontSize: '8px',
+            fontSize: '7px',
             fontFamily: 'var(--font-mono)',
             color: 'var(--bb-gray)',
           }}
         >
-          <span>{markers[0].label}</span>
-          <span>{markers[1].label}</span>
+          {segments.map((s, i) => {
+            const minutesAgo = Math.round((now - s.timestamp) / 60000);
+            const label = minutesAgo <= 1 ? 'now' : `-${minutesAgo}`;
+            return (
+              <span
+                key={i}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                }}
+              >
+                {label}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>
