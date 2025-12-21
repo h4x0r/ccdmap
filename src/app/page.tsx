@@ -317,7 +317,7 @@ function DesktopHome() {
       </div>
 
       {/* ===== MAIN CONTENT GRID ===== */}
-      <div className="flex-1 min-h-0 bb-grid" style={{ gridTemplateColumns: '280px 1fr 320px', gridTemplateRows: 'auto 1fr' }}>
+      <div className="flex-1 min-h-0 bb-grid" style={{ gridTemplateColumns: '280px 1fr 400px', gridTemplateRows: 'auto 1fr' }}>
 
         {/* ===== LEFT COLUMN - METRICS ===== */}
         <div className="bb-grid-cell flex flex-col">
