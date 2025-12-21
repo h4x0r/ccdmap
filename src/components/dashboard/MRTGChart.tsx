@@ -70,6 +70,9 @@ function formatValue(value: number, unit?: string): string {
   if (unit === '%') return `${value.toFixed(0)}%`;
   if (unit === 'ms') return `${value.toFixed(0)}ms`;
   if (unit === 'blks') return `${value.toFixed(0)}`;
+  if (unit === 'KB/s') return value.toFixed(1);
+  // For unitless values (like peer count), show integers
+  if (!unit || unit === '') return Math.round(value).toString();
   return value.toFixed(1);
 }
 
