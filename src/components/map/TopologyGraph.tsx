@@ -18,6 +18,7 @@ import '@xyflow/react/dist/style.css';
 
 import { useNodes } from '@/hooks/useNodes';
 import { useAppStore } from '@/hooks/useAppStore';
+import { useAudio } from '@/hooks/useAudio';
 import { toReactFlowNodes, toReactFlowEdges, type ConcordiumNodeData, type ConcordiumNode } from '@/lib/transforms';
 import { getLayoutedElements, type TierLabelInfo } from '@/lib/layout';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { HUDReticle, type NodeHealth, type NodeTier } from './HUDReticle';
 
 function ConcordiumNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as unknown as ConcordiumNodeData;
@@ -82,42 +84,13 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="relative">
-            {/* Selected node indicator - pulsing orange ring */}
-            {selected && (
-              <>
-                <div
-                  className="absolute rounded-full border-4 border-[var(--bb-orange)] animate-ping"
-                  style={{
-                    width: selectedSize + 20,
-                    height: selectedSize + 20,
-                    top: -10,
-                    left: -10,
-                    opacity: 0.75,
-                  }}
-                />
-                <div
-                  className="absolute rounded-full border-2 border-[var(--bb-orange)]"
-                  style={{
-                    width: selectedSize + 12,
-                    height: selectedSize + 12,
-                    top: -6,
-                    left: -6,
-                  }}
-                />
-              </>
-            )}
-            {/* Connected peer indicator - subtle cyan ring */}
-            {isConnectedPeer && !selected && (
-              <div
-                className="absolute rounded-full border-2 border-[var(--bb-cyan)]"
-                style={{
-                  width: size + 8,
-                  height: size + 8,
-                  top: -4,
-                  left: -4,
-                }}
-              />
-            )}
+            {/* Iron Man HUD Targeting Reticle */}
+            <HUDReticle
+              health={nodeData.health as NodeHealth}
+              tier={tier as NodeTier}
+              selected={selected}
+              isConnectedPeer={isConnectedPeer}
+            />
             <div
               className={cn(
                 'rounded-full border-2 flex items-center justify-center cursor-pointer transition-all duration-300',
@@ -125,8 +98,7 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
                 healthColors.border,
                 healthColors.glow,
                 tierStyles[tier],
-                selected && 'border-[var(--bb-orange)] shadow-[0_0_30px_rgba(255,102,0,0.8)]',
-                isConnectedPeer && !selected && 'shadow-[0_0_20px_rgba(0,204,255,0.5)]'
+                selected && 'border-[#00CCFF] shadow-[0_0_20px_rgba(0,204,255,0.6)]'
               )}
               style={{ width: selectedSize, height: selectedSize }}
             >
@@ -136,15 +108,6 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border border-background shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
               )}
             </div>
-            {/* Selected node label */}
-            {selected && (
-              <div
-                className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold text-[var(--bb-orange)] bg-[var(--bb-black)] px-2 py-0.5 border border-[var(--bb-orange)]"
-                style={{ top: selectedSize + 8 }}
-              >
-                ▶ SELECTED
-              </div>
-            )}
           </div>
         </TooltipTrigger>
         <TooltipContent
@@ -310,6 +273,7 @@ interface TopologyGraphProps {
 export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
   const { data: apiNodes, isLoading } = useNodes();
   const { selectedNodeId, selectNode } = useAppStore();
+  const { playAcquisitionSequence, isMuted, toggleMute } = useAudio();
 
   const { initialNodes, initialEdges, tierLabels, tierSeparators } = useMemo(() => {
     if (!apiNodes) return { initialNodes: [], initialEdges: [], tierLabels: [], tierSeparators: [] };
@@ -352,13 +316,16 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
+      // Play JARVIS acquisition sequence
+      playAcquisitionSequence();
+
       if (onNodeSelect) {
         onNodeSelect(node.id);
       } else {
         selectNode(node.id);
       }
     },
-    [selectNode, onNodeSelect]
+    [selectNode, onNodeSelect, playAcquisitionSequence]
   );
 
   const onPaneClick = useCallback(() => {
@@ -443,6 +410,19 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
           className="!bg-[var(--bb-panel)] !border-[var(--bb-border)] [&>button]:!bg-[var(--bb-black)] [&>button]:!border-[var(--bb-border)] [&>button]:!text-[var(--bb-gray)] [&>button:hover]:!bg-[var(--bb-orange)] [&>button:hover]:!text-[var(--bb-black)]"
           style={{ bottom: 20, left: 20 }}
         />
+        {/* JARVIS Audio Mute Toggle */}
+        <button
+          onClick={toggleMute}
+          className="absolute bottom-5 left-32 z-10 px-2 py-1 text-[10px] font-mono border transition-colors"
+          style={{
+            backgroundColor: isMuted ? 'var(--bb-panel)' : 'var(--bb-black)',
+            borderColor: isMuted ? 'var(--bb-gray)' : 'var(--bb-cyan)',
+            color: isMuted ? 'var(--bb-gray)' : 'var(--bb-cyan)',
+          }}
+          title={isMuted ? 'Enable JARVIS sounds' : 'Mute JARVIS sounds'}
+        >
+          {isMuted ? '🔇 MUTED' : '🔊 JARVIS'}
+        </button>
         <TierLabels tierLabels={tierLabels} tierSeparators={tierSeparators} />
       </ReactFlow>
     </div>

@@ -1196,6 +1196,106 @@
   }
 }
 
+/* ============================================
+   IRON MAN HUD TARGETING RETICLES
+   JARVIS-style scanning and acquisition effects
+   ============================================ */
+
+@keyframes hud-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hud-rotate-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes hud-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes hud-acquire {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes hud-scan-line {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes hud-brackets-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* HUD Reticle base styles */
+.hud-reticle {
+  z-index: 1;
+  overflow: visible;
+}
+
+.hud-reticle.selected {
+  z-index: 10;
+}
+
+/* Acquisition animation on selection */
+.hud-reticle.selected .corner-brackets {
+  animation: hud-brackets-in 0.3s ease-out forwards;
+}
+
+.hud-reticle.selected .scanning-arcs {
+  animation: hud-rotate 2s linear infinite;
+}
+
 /* Applied to ReactFlow edge paths when connected to selected node */
 .react-flow__edge.energy-active path {
   stroke: #00CCFF !important;
