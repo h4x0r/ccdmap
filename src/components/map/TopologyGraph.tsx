@@ -19,7 +19,7 @@ import '@xyflow/react/dist/style.css';
 import { useNodes } from '@/hooks/useNodes';
 import { useAppStore } from '@/hooks/useAppStore';
 import { toReactFlowNodes, toReactFlowEdges, type ConcordiumNodeData, type ConcordiumNode } from '@/lib/transforms';
-import { getLayoutedElements } from '@/lib/layout';
+import { getLayoutedElements, type TierLabelInfo } from '@/lib/layout';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -191,26 +191,24 @@ const nodeTypes = {
   concordiumNode: ConcordiumNodeComponent,
 };
 
-// Tier label positions in graph coordinates (from layout.ts tierConfig)
-const TIER_LABELS = [
-  { tier: 'BAKERS', y: 80, color: 'rgb(168, 85, 247)', opacity: 0.6 },
-  { tier: 'HUBS', y: 280, color: 'var(--bb-cyan)', opacity: 0.4 },
-  { tier: 'STANDARD', y: 500, color: 'var(--bb-gray)', opacity: 0.3 },
-  { tier: 'EDGE', y: 750, color: 'var(--bb-gray)', opacity: 0.2 },
-] as const;
+// Tier colors for labels and separators
+const TIER_COLORS: Record<string, { color: string; opacity: number; separatorOpacity: number }> = {
+  'BAKERS': { color: 'rgb(168, 85, 247)', opacity: 0.6, separatorOpacity: 0.2 },
+  'HUBS': { color: 'var(--bb-cyan)', opacity: 0.4, separatorOpacity: 0.15 },
+  'STANDARD': { color: 'var(--bb-gray)', opacity: 0.3, separatorOpacity: 0.1 },
+  'EDGE': { color: 'var(--bb-gray)', opacity: 0.2, separatorOpacity: 0.1 },
+};
 
-// Tier separator line positions (between tiers)
-const TIER_SEPARATORS = [
-  { y: 200, color: 'rgb(168, 85, 247)', opacity: 0.2 },
-  { y: 420, color: 'var(--bb-cyan)', opacity: 0.15 },
-  { y: 650, color: 'var(--bb-gray)', opacity: 0.1 },
-] as const;
+interface TierLabelsProps {
+  tierLabels: TierLabelInfo[];
+  tierSeparators: { y: number }[];
+}
 
 /**
  * Renders tier labels that follow the viewport zoom/pan
  * Must be rendered inside ReactFlowProvider context
  */
-function TierLabels() {
+function TierLabels({ tierLabels, tierSeparators }: TierLabelsProps) {
   const { getViewport } = useReactFlow();
   const viewport = getViewport();
 
@@ -226,37 +224,45 @@ function TierLabels() {
       }}
     >
       {/* Tier Labels - positioned in graph coordinates */}
-      {TIER_LABELS.map(({ tier, y, color, opacity }) => (
-        <div
-          key={tier}
-          className="absolute font-mono font-bold tracking-widest"
-          style={{
-            left: -60,
-            top: y - 5,
-            color,
-            opacity,
-            fontSize: `${fontSize}px`,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {tier}
-        </div>
-      ))}
+      {tierLabels.map(({ tier, y }) => {
+        const colors = TIER_COLORS[tier] || TIER_COLORS['STANDARD'];
+        return (
+          <div
+            key={tier}
+            className="absolute font-mono font-bold tracking-widest"
+            style={{
+              left: -60,
+              top: y - 5,
+              color: colors.color,
+              opacity: colors.opacity,
+              fontSize: `${fontSize}px`,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {tier}
+          </div>
+        );
+      })}
 
       {/* Tier Separator Lines - positioned in graph coordinates */}
-      {TIER_SEPARATORS.map(({ y, color, opacity }, i) => (
-        <div
-          key={i}
-          className="absolute h-px"
-          style={{
-            left: -60,
-            top: y,
-            width: 2000,
-            background: `linear-gradient(to right, ${color}, transparent)`,
-            opacity,
-          }}
-        />
-      ))}
+      {tierSeparators.map(({ y }, i) => {
+        // Use color from the tier above the separator
+        const tierAbove = tierLabels[i];
+        const colors = tierAbove ? (TIER_COLORS[tierAbove.tier] || TIER_COLORS['STANDARD']) : TIER_COLORS['STANDARD'];
+        return (
+          <div
+            key={i}
+            className="absolute h-px"
+            style={{
+              left: -60,
+              top: y,
+              width: 2000,
+              background: `linear-gradient(to right, ${colors.color}, transparent)`,
+              opacity: colors.separatorOpacity,
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -301,14 +307,14 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
   const { data: apiNodes, isLoading } = useNodes();
   const { selectedNodeId, selectNode } = useAppStore();
 
-  const { initialNodes, initialEdges } = useMemo(() => {
-    if (!apiNodes) return { initialNodes: [], initialEdges: [] };
+  const { initialNodes, initialEdges, tierLabels, tierSeparators } = useMemo(() => {
+    if (!apiNodes) return { initialNodes: [], initialEdges: [], tierLabels: [], tierSeparators: [] };
 
     const rawNodes = toReactFlowNodes(apiNodes);
     const rawEdges = toReactFlowEdges(apiNodes);
 
     // Apply tiered "Mission Control" layout
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+    const { nodes: layoutedNodes, edges: layoutedEdges, tierLabels: labels, tierSeparators: separators } = getLayoutedElements(
       rawNodes,
       rawEdges,
       { width: 1400, height: 900 }
@@ -317,6 +323,8 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
     return {
       initialNodes: layoutedNodes,
       initialEdges: layoutedEdges,
+      tierLabels: labels,
+      tierSeparators: separators,
     };
   }, [apiNodes]);
 
@@ -423,7 +431,7 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
           className="!bg-[var(--bb-panel)] !border-[var(--bb-border)] [&>button]:!bg-[var(--bb-black)] [&>button]:!border-[var(--bb-border)] [&>button]:!text-[var(--bb-gray)] [&>button:hover]:!bg-[var(--bb-orange)] [&>button:hover]:!text-[var(--bb-black)]"
           style={{ bottom: 20, left: 20 }}
         />
-        <TierLabels />
+        <TierLabels tierLabels={tierLabels} tierSeparators={tierSeparators} />
       </ReactFlow>
     </div>
   );
