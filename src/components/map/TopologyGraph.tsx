@@ -413,12 +413,11 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
         {/* JARVIS Audio Mute Toggle */}
         <button
           onClick={toggleMute}
-          className="absolute z-10 w-7 h-7 flex items-center justify-center text-sm border transition-colors"
+          className="absolute z-10 w-7 h-7 flex items-center justify-center text-sm transition-opacity hover:opacity-80"
           style={{
-            bottom: 20,
-            left: 56,
-            backgroundColor: isMuted ? 'var(--bb-panel)' : 'var(--bb-black)',
-            borderColor: isMuted ? 'var(--bb-gray)' : 'var(--bb-cyan)',
+            bottom: 125,
+            left: 24,
+            opacity: isMuted ? 0.4 : 1,
           }}
           title={isMuted ? 'Enable JARVIS sounds' : 'Mute JARVIS sounds'}
         >
