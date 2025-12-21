@@ -222,7 +222,12 @@ function LoadingSkeleton() {
   );
 }
 
-export function TopologyGraph() {
+interface TopologyGraphProps {
+  /** Optional callback when a node is selected - used for mobile navigation */
+  onNodeSelect?: (nodeId: string | null) => void;
+}
+
+export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
   const { data: apiNodes, isLoading } = useNodes();
   const { selectedNodeId, selectNode } = useAppStore();
 
@@ -265,14 +270,20 @@ export function TopologyGraph() {
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      selectNode(node.id);
+      // If clicking the same node that's already selected, trigger navigation
+      if (selectedNodeId === node.id && onNodeSelect) {
+        onNodeSelect(node.id);
+      } else {
+        selectNode(node.id);
+      }
     },
-    [selectNode]
+    [selectNode, selectedNodeId, onNodeSelect]
   );
 
   const onPaneClick = useCallback(() => {
     selectNode(null);
-  }, [selectNode]);
+    onNodeSelect?.(null);
+  }, [selectNode, onNodeSelect]);
 
   // Style edges - cyberpunk aesthetic with teal highlights
   const styledEdges = useMemo((): Edge[] => {

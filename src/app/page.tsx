@@ -5,9 +5,11 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useAppStore } from '@/hooks/useAppStore';
 import { useNetworkMetrics, useNodes } from '@/hooks/useNodes';
 import { useMetricHistory, type MetricSnapshot } from '@/hooks/useMetricHistory';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import { calculateNetworkPulse, getPulseStatus, THRESHOLDS, calculateFinalizationHealth, calculateLatencyHealth } from '@/lib/pulse';
 import { Sparkline } from '@/components/dashboard/Sparkline';
 import { MRTGChart, type MRTGDataPoint } from '@/components/dashboard/MRTGChart';
+import { MobileHome } from '@/components/mobile/MobileHome';
 
 // Dynamic imports for heavy map components
 const TopologyGraph = dynamic(
@@ -52,6 +54,18 @@ function formatDate(date: Date) {
 }
 
 export default function Home() {
+  const isMobile = useIsMobile();
+
+  // Render mobile layout on small screens
+  if (isMobile) {
+    return <MobileHome />;
+  }
+
+  // Desktop layout below
+  return <DesktopHome />;
+}
+
+function DesktopHome() {
   const { currentView, setView, selectedNodeId, selectNode } = useAppStore();
   const { metrics: networkMetrics, dataUpdatedAt } = useNetworkMetrics();
   const { data: nodes } = useNodes();
