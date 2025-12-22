@@ -35,9 +35,12 @@ export function MRTGMirroredChart({
   height = 100,
   showGrid = true,
 }: MRTGMirroredChartProps) {
-  const padding = { top: 8, right: 45, bottom: 8, left: 8 };
-  // Center Y should be in middle of drawable area (accounting for padding)
-  const centerY = padding.top + (height - padding.top - padding.bottom) / 2;
+  // Use fixed viewBox coordinates (100x100) for consistent math
+  // The SVG will stretch to fill container via preserveAspectRatio="none"
+  const viewBoxHeight = 100;
+  const padding = { top: 5, right: 45, bottom: 5, left: 8 };
+  // Center Y at exactly 50% of viewBox height
+  const centerY = 50;
 
   const latestOutbound = outboundData.length > 0 ? outboundData[outboundData.length - 1].value : 0;
   const latestInbound = inboundData.length > 0 ? inboundData[inboundData.length - 1].value : 0;
@@ -61,7 +64,7 @@ export function MRTGMirroredChart({
     const dataMax = Math.max(...allValues, 1);
     const yMax = dataMax * 1.1; // 10% padding
 
-    const chartHeight = (height - padding.top - padding.bottom) / 2;
+    const chartHeight = (viewBoxHeight - padding.top - padding.bottom) / 2;
     const chartWidth = 100 - padding.left - padding.right;
 
     // Generate outbound path (above center line)
@@ -96,10 +99,10 @@ export function MRTGMirroredChart({
       : '';
 
     return { outboundPath, inboundPath, outboundArea, inboundArea, yMax };
-  }, [outboundData, inboundData, height, centerY, padding.top, padding.bottom, padding.left, padding.right]);
+  }, [outboundData, inboundData, viewBoxHeight, centerY, padding.top, padding.bottom, padding.left, padding.right]);
 
   return (
-    <div className="bb-mrtg-mirrored" style={{ height }}>
+    <div className="bb-mrtg-chart" style={{ height, display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div className="bb-mrtg-header">
         <span className="bb-mrtg-label">{label}</span>
@@ -113,11 +116,12 @@ export function MRTGMirroredChart({
         </div>
       </div>
 
-      {/* Chart SVG */}
+      {/* Chart SVG - flex:1 to fill remaining space, override CSS calc */}
       <svg
-        viewBox={`0 0 100 ${height}`}
+        viewBox={`0 0 100 ${viewBoxHeight}`}
         preserveAspectRatio="none"
         className="bb-mrtg-svg"
+        style={{ flex: 1, height: 'auto' }}
       >
         {/* Grid lines */}
         {showGrid && (
@@ -145,9 +149,9 @@ export function MRTGMirroredChart({
             {/* Bottom grid line */}
             <line
               x1={padding.left}
-              y1={height - padding.bottom}
+              y1={viewBoxHeight - padding.bottom}
               x2={100 - padding.right}
-              y2={height - padding.bottom}
+              y2={viewBoxHeight - padding.bottom}
               stroke="var(--bb-grid)"
               strokeWidth="0.3"
               strokeDasharray="1,1"
@@ -207,7 +211,7 @@ export function MRTGMirroredChart({
         </text>
         <text
           x={100 - padding.right + 2}
-          y={height - padding.bottom}
+          y={viewBoxHeight - padding.bottom}
           className="bb-mrtg-axis-label"
           textAnchor="start"
           fill={COLORS.inbound.stroke}

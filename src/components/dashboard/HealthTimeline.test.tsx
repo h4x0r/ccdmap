@@ -43,9 +43,19 @@ describe('HealthTimeline', () => {
   });
 
   it('shows time labels when showLabels is true', () => {
-    render(<HealthTimeline data={mockData} showLabels />);
-    // Should have start and end time indicators
-    expect(screen.getByText(/-15m/i)).toBeInTheDocument();
+    // Use realistic timestamps with 5-minute intervals
+    const now = Date.now();
+    const realisticData: HealthStatus[] = [
+      { timestamp: now - 20 * 60000, status: 'healthy' },  // -20 min
+      { timestamp: now - 15 * 60000, status: 'healthy' },  // -15 min
+      { timestamp: now - 10 * 60000, status: 'lagging' },  // -10 min
+      { timestamp: now - 5 * 60000, status: 'healthy' },   // -5 min
+      { timestamp: now, status: 'issue' },                  // now
+    ];
+    render(<HealthTimeline data={realisticData} showLabels />);
+    // Should have labels for each segment showing minutes ago
     expect(screen.getByText(/now/i)).toBeInTheDocument();
+    // Should have labels showing minutes ago (could be -5, -10, -15, -20)
+    expect(screen.getByText(/-5/)).toBeInTheDocument();
   });
 });

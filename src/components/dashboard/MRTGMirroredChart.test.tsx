@@ -84,6 +84,6 @@ describe('MRTGMirroredChart', () => {
     );
 
     // Should still render without crashing
-    expect(container.querySelector('.bb-mrtg-mirrored')).toBeInTheDocument();
+    expect(container.querySelector('.bb-mrtg-chart')).toBeInTheDocument();
   });
 });
