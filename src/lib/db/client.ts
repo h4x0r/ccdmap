@@ -67,3 +67,54 @@ export function setDbClient(newClient: Client): void {
 export function resetDbClient(): void {
   client = null;
 }
+
+/**
+ * Retention period in milliseconds (30 days)
+ */
+const RETENTION_PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Clean up old data beyond the retention period (30 days)
+ * Acts as a ring buffer - deletes data older than retention period
+ * Returns the number of rows deleted from each table
+ */
+export async function cleanupOldData(): Promise<{
+  snapshots: number;
+  events: number;
+  networkSnapshots: number;
+  sessions: number;
+}> {
+  const db = getDbClient();
+  const cutoffTimestamp = Date.now() - RETENTION_PERIOD_MS;
+
+  // Delete old snapshots (main storage consumer)
+  const snapshotsResult = await db.execute({
+    sql: 'DELETE FROM snapshots WHERE timestamp < ?',
+    args: [cutoffTimestamp],
+  });
+
+  // Delete old events
+  const eventsResult = await db.execute({
+    sql: 'DELETE FROM events WHERE timestamp < ?',
+    args: [cutoffTimestamp],
+  });
+
+  // Delete old network snapshots
+  const networkSnapshotsResult = await db.execute({
+    sql: 'DELETE FROM network_snapshots WHERE timestamp < ?',
+    args: [cutoffTimestamp],
+  });
+
+  // Delete old completed sessions (keep active ones)
+  const sessionsResult = await db.execute({
+    sql: 'DELETE FROM node_sessions WHERE end_time IS NOT NULL AND end_time < ?',
+    args: [cutoffTimestamp],
+  });
+
+  return {
+    snapshots: snapshotsResult.rowsAffected,
+    events: eventsResult.rowsAffected,
+    networkSnapshots: networkSnapshotsResult.rowsAffected,
+    sessions: sessionsResult.rowsAffected,
+  };
+}

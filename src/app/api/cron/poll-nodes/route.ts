@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDbClient, initializeSchema } from '@/lib/db/client';
+import { getDbClient, initializeSchema, cleanupOldData } from '@/lib/db/client';
 import { NodeTracker, type NodeSummary } from '@/lib/db/NodeTracker';
 import { calculateNetworkPulse } from '@/lib/pulse';
 import type { HealthStatus } from '@/lib/db/schema';
@@ -145,6 +145,9 @@ export async function POST(request: Request) {
        avgPeers, avgLatency, maxFinalizationLag, consensusParticipation, pulseScore]
     );
 
+    // Clean up old data (30-day rolling window)
+    const cleanup = await cleanupOldData();
+
     // Return summary
     return NextResponse.json({
       success: true,
@@ -174,6 +177,8 @@ export async function POST(request: Request) {
       // Include details for new nodes (for alerting)
       newNodeIds: result.newNodes,
       restartedNodeIds: result.restarts,
+      // Cleanup stats (30-day rolling window)
+      cleanedUp: cleanup,
     });
   } catch (error) {
     console.error('Error polling nodes:', error);
@@ -274,11 +279,15 @@ export async function GET(request: Request) {
          avgPeers, avgLatency, maxFinalizationLag, consensusParticipation, pulseScore]
       );
 
+      // Clean up old data (30-day rolling window)
+      const cleanup = await cleanupOldData();
+
       return NextResponse.json({
         success: true,
         timestamp: now,
         nodesPolled: nodes.length,
         snapshotsRecorded: result.snapshotsRecorded,
+        cleanedUp: cleanup,
       });
     } catch (error) {
       console.error('Error polling nodes:', error);
