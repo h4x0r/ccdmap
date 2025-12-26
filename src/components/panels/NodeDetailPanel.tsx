@@ -2,6 +2,7 @@
 
 import { useAppStore } from '@/hooks/useAppStore';
 import { useNodes } from '@/hooks/useNodes';
+import { usePeers } from '@/hooks/usePeers';
 import { calculateNodeHealth, type ConcordiumNode } from '@/lib/transforms';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { X, ChevronRight, Wifi, Server, Blocks, Gauge, Shield } from 'lucide-react';
+import { X, ChevronRight, Wifi, Server, Blocks, Gauge, Shield, Globe } from 'lucide-react';
+import { PeerTypeBadge, type PeerSource } from '@/components/ui/PeerTypeBadge';
+import type { PeerData } from '@/hooks/usePeers';
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -77,7 +80,7 @@ function DetailRow({ label, value }: DetailRowProps) {
   );
 }
 
-function NodeDetails({ node, maxHeight }: { node: ConcordiumNode; maxHeight: number }) {
+function NodeDetails({ node, maxHeight, peerData }: { node: ConcordiumNode; maxHeight: number; peerData?: PeerData }) {
   const health = calculateNodeHealth(node, maxHeight);
   const selectNode = useAppStore((s) => s.selectNode);
 
@@ -122,6 +125,17 @@ function NodeDetails({ node, maxHeight }: { node: ConcordiumNode; maxHeight: num
       </Section>
 
       <Section title="Connectivity" icon={<Wifi className="h-3.5 w-3.5" />}>
+        {peerData?.ipAddress && (
+          <DetailRow
+            label="IP Address"
+            value={
+              <span className="text-[var(--concordium-teal)]">{peerData.ipAddress}</span>
+            }
+          />
+        )}
+        {peerData?.port && (
+          <DetailRow label="Port" value={peerData.port} />
+        )}
         <DetailRow label="Peers" value={node.peersCount} />
         <DetailRow label="Avg Ping" value={formatNumber(node.averagePing, 0, 'ms')} />
         <DetailRow label="Bandwidth In" value={formatBytes(node.averageBytesPerSecondIn)} />
@@ -191,6 +205,24 @@ function NodeDetails({ node, maxHeight }: { node: ConcordiumNode; maxHeight: num
         />
       </Section>
 
+      {peerData && (peerData.geoCountry || peerData.geoCity) && (
+        <Section title="Location" icon={<Globe className="h-3.5 w-3.5" />} defaultOpen={false}>
+          {peerData.geoCountry && <DetailRow label="Country" value={peerData.geoCountry} />}
+          {peerData.geoCity && <DetailRow label="City" value={peerData.geoCity} />}
+          {peerData.geoIsp && <DetailRow label="ISP" value={peerData.geoIsp} />}
+          {peerData.geoLat !== null && peerData.geoLon !== null && (
+            <DetailRow
+              label="Coordinates"
+              value={
+                <span className="text-xs opacity-70">
+                  {peerData.geoLat.toFixed(2)}, {peerData.geoLon.toFixed(2)}
+                </span>
+              }
+            />
+          )}
+        </Section>
+      )}
+
       {isBaker && (
         <Section title="Baker Info" icon={<Shield className="h-3.5 w-3.5" />}>
           <DetailRow
@@ -217,13 +249,15 @@ function NodeDetails({ node, maxHeight }: { node: ConcordiumNode; maxHeight: num
 export function NodeDetailPanel() {
   const { selectedNodeId, isPanelOpen, closePanel } = useAppStore();
   const { data: nodes } = useNodes();
+  const { peers } = usePeers();
 
-  const { selectedNode, maxHeight } = useMemo(() => {
-    if (!nodes || !selectedNodeId) return { selectedNode: null, maxHeight: 0 };
+  const { selectedNode, maxHeight, peerData } = useMemo(() => {
+    if (!nodes || !selectedNodeId) return { selectedNode: null, maxHeight: 0, peerData: undefined };
     const node = nodes.find((n) => n.nodeId === selectedNodeId);
     const max = Math.max(...nodes.map((n) => n.finalizedBlockHeight));
-    return { selectedNode: node, maxHeight: max };
-  }, [nodes, selectedNodeId]);
+    const peer = peers.find((p) => p.peerId === selectedNodeId);
+    return { selectedNode: node, maxHeight: max, peerData: peer };
+  }, [nodes, selectedNodeId, peers]);
 
   if (!isPanelOpen || !selectedNode) return null;
 
@@ -261,7 +295,7 @@ export function NodeDetailPanel() {
           <h2 className="font-mono font-bold text-base truncate pr-2 text-[var(--concordium-teal)]">
             {selectedNode.nodeName}
           </h2>
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-2 flex-wrap">
             <Badge variant="outline" className={cn('text-[10px] font-mono', healthStyles)}>
               {health.toUpperCase()}
             </Badge>
@@ -272,6 +306,12 @@ export function NodeDetailPanel() {
               >
                 BAKER
               </Badge>
+            )}
+            {peerData && (
+              <PeerTypeBadge
+                source={peerData.source as PeerSource}
+                isBootstrapper={peerData.isBootstrapper}
+              />
             )}
           </div>
         </div>
@@ -287,7 +327,7 @@ export function NodeDetailPanel() {
 
       {/* Content */}
       <ScrollArea className="flex-1 p-4">
-        <NodeDetails node={selectedNode} maxHeight={maxHeight} />
+        <NodeDetails node={selectedNode} maxHeight={maxHeight} peerData={peerData} />
       </ScrollArea>
 
       {/* Footer terminal line */}
