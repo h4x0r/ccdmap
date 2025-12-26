@@ -7,6 +7,7 @@ import { useNetworkMetrics, useNodes } from '@/hooks/useNodes';
 import { useMetricHistory, type MetricSnapshot } from '@/hooks/useMetricHistory';
 import { useNodeHistory } from '@/hooks/useNodeHistory';
 import { useNetworkHistory } from '@/hooks/useNetworkHistory';
+import { usePeers } from '@/hooks/usePeers';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useAudio } from '@/hooks/useAudio';
 import { calculateNetworkPulse, getPulseStatus, THRESHOLDS, calculateFinalizationHealth, calculateLatencyHealth } from '@/lib/pulse';
@@ -77,10 +78,17 @@ function DesktopHome() {
   const { currentView, setView, selectedNodeId, selectNode, isDeepDiveOpen, openDeepDive, closeDeepDive, isHelpOpen, openHelp, closeHelp } = useAppStore();
   const { metrics: networkMetrics, dataUpdatedAt } = useNetworkMetrics();
   const { data: nodes } = useNodes();
+  const { peers } = usePeers();
   const { playAcquisitionSequence } = useAudio();
 
   // Find selected node from nodes array
   const selectedNode = nodes?.find(n => n.nodeId === selectedNodeId) ?? null;
+
+  // Find peer data for selected node (includes IP, geo data from gRPC)
+  const selectedNodePeer = useMemo(
+    () => peers.find(p => p.peerId === selectedNodeId),
+    [peers, selectedNodeId]
+  );
 
   // Create a Set of known node IDs for quick lookup (used for peer availability check)
   const knownNodeIds = useMemo(() => new Set(nodes?.map(n => n.nodeId) ?? []), [nodes]);
@@ -718,6 +726,24 @@ function DesktopHome() {
                   {/* Network */}
                   <div className="bb-forensic-section">
                     <div className="bb-forensic-section-header">NETWORK</div>
+                    {selectedNodePeer?.ipAddress && (
+                      <div className="bb-forensic-row">
+                        <span className="bb-forensic-label">IP Address</span>
+                        <span className="bb-forensic-value text-[var(--bb-cyan)]">{selectedNodePeer.ipAddress}:{selectedNodePeer.port}</span>
+                      </div>
+                    )}
+                    {selectedNodePeer?.geoCountry && (
+                      <div className="bb-forensic-row">
+                        <span className="bb-forensic-label">Location</span>
+                        <span className="bb-forensic-value">{selectedNodePeer.geoCity ? `${selectedNodePeer.geoCity}, ` : ''}{selectedNodePeer.geoCountry}</span>
+                      </div>
+                    )}
+                    {selectedNodePeer?.geoIsp && (
+                      <div className="bb-forensic-row">
+                        <span className="bb-forensic-label">ISP</span>
+                        <span className="bb-forensic-value text-[var(--bb-gray)]">{selectedNodePeer.geoIsp}</span>
+                      </div>
+                    )}
                     <div className="bb-forensic-row">
                       <span className="bb-forensic-label">Peers</span>
                       <span className="bb-forensic-value text-[var(--bb-cyan)]">{selectedNode.peersCount}</span>
