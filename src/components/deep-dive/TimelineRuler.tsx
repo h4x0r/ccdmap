@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useMemo } from 'react';
+import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import type { TimeRange } from '@/lib/timeline';
 
 export interface TimelineRulerProps {
@@ -61,27 +61,54 @@ function formatTimestamp(timestamp: number, rangeDuration: number): string {
 }
 
 /**
- * Generate tick marks for the timeline
+ * Estimate label width based on format
+ */
+function estimateLabelWidth(rangeDuration: number): number {
+  const DAY = 24 * 60 * 60 * 1000;
+  if (rangeDuration <= 6 * 60 * 60 * 1000) {
+    return 50; // "HH:MM" ~50px
+  } else if (rangeDuration <= 3 * DAY) {
+    return 110; // "Dec 21, 22:00" ~110px
+  } else {
+    return 60; // "Dec 21" ~60px
+  }
+}
+
+/**
+ * Generate tick marks for the timeline, accounting for label width
  */
 function generateTicks(range: TimeRange, width: number): number[] {
   const duration = range.end - range.start;
   const HOUR = 60 * 60 * 1000;
   const DAY = 24 * HOUR;
 
-  // Determine tick interval based on duration
-  let interval: number;
-  if (duration <= 2 * HOUR) {
-    interval = 15 * 60 * 1000; // 15 minutes
-  } else if (duration <= 6 * HOUR) {
-    interval = 30 * 60 * 1000; // 30 minutes
-  } else if (duration <= DAY) {
-    interval = HOUR; // 1 hour
-  } else if (duration <= 3 * DAY) {
-    interval = 3 * HOUR; // 3 hours
-  } else if (duration <= 7 * DAY) {
-    interval = 6 * HOUR; // 6 hours
-  } else {
-    interval = DAY; // 1 day
+  // Estimate label width and calculate max ticks that can fit
+  const labelWidth = estimateLabelWidth(duration);
+  const minSpacing = labelWidth + 20; // Label width + padding
+  const maxTicks = Math.max(2, Math.floor(width / minSpacing));
+
+  // Available intervals from finest to coarsest
+  const intervals = [
+    15 * 60 * 1000,   // 15 minutes
+    30 * 60 * 1000,   // 30 minutes
+    HOUR,             // 1 hour
+    2 * HOUR,         // 2 hours
+    3 * HOUR,         // 3 hours
+    6 * HOUR,         // 6 hours
+    12 * HOUR,        // 12 hours
+    DAY,              // 1 day
+    2 * DAY,          // 2 days
+    7 * DAY,          // 1 week
+  ];
+
+  // Find the smallest interval that produces <= maxTicks
+  let interval = intervals[intervals.length - 1];
+  for (const candidate of intervals) {
+    const tickCount = Math.ceil(duration / candidate);
+    if (tickCount <= maxTicks) {
+      interval = candidate;
+      break;
+    }
   }
 
   // Generate ticks aligned to interval boundaries
@@ -106,9 +133,33 @@ export function TimelineRuler({
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [edgeDragState, setEdgeDragState] = useState<EdgeDragState | null>(null);
   const [minimapDragState, setMinimapDragState] = useState<MinimapDragState | null>(null);
+  const [containerWidth, setContainerWidth] = useState(800);
+
+  // Track container width for responsive tick generation
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateWidth = () => {
+      setContainerWidth(container.offsetWidth || 800);
+    };
+    updateWidth();
+
+    // ResizeObserver may not exist in test environments (jsdom)
+    try {
+      const RO = window.ResizeObserver;
+      if (RO) {
+        const observer = new RO(updateWidth);
+        observer.observe(container);
+        return () => observer.disconnect();
+      }
+    } catch {
+      // Ignore in test environments
+    }
+  }, []);
 
   const duration = range.end - range.start;
-  const ticks = useMemo(() => generateTicks(range, 800), [range]);
+  const ticks = useMemo(() => generateTicks(range, containerWidth), [range, containerWidth]);
 
   const timestampToX = useCallback(
     (timestamp: number) => {
