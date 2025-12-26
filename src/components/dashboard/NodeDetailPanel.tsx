@@ -13,6 +13,7 @@ export interface NodeDetailPanelProps {
   bandwidthOutHistory: MRTGDataPoint[];
   peerCountHistory: MRTGDataPoint[];
   onClose: () => void;
+  onOpenDeepDive?: () => void;
 }
 
 export function NodeDetailPanel({
@@ -24,6 +25,7 @@ export function NodeDetailPanel({
   bandwidthOutHistory,
   peerCountHistory,
   onClose,
+  onOpenDeepDive,
 }: NodeDetailPanelProps) {
   return (
     <div className="node-detail-panel bb-panel">
@@ -50,20 +52,37 @@ export function NodeDetailPanel({
             {nodeId}
           </span>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="close"
-          className="text-[var(--bb-gray)] hover:text-[var(--bb-orange)] transition-colors"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '16px',
-            padding: '4px 8px',
-          }}
-        >
-          ×
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={onOpenDeepDive}
+            aria-label="deep dive"
+            className="text-[var(--bb-cyan)] hover:text-[var(--bb-orange)] transition-colors font-mono"
+            style={{
+              background: 'none',
+              border: '1px solid var(--bb-border)',
+              cursor: 'pointer',
+              fontSize: '10px',
+              padding: '4px 8px',
+              borderRadius: '2px',
+            }}
+          >
+            Deep Dive
+          </button>
+          <button
+            onClick={onClose}
+            aria-label="close"
+            className="text-[var(--bb-gray)] hover:text-[var(--bb-orange)] transition-colors"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+              padding: '4px 8px',
+            }}
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {/* Health Timeline Strip */}

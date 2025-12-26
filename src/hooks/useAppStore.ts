@@ -7,12 +7,15 @@ interface AppState {
   selectedNodeId: string | null;
   currentView: ViewType;
   isPanelOpen: boolean;
+  isDeepDiveOpen: boolean;
 
   // Actions
   selectNode: (nodeId: string | null) => void;
   setView: (view: ViewType) => void;
   togglePanel: () => void;
   closePanel: () => void;
+  openDeepDive: () => void;
+  closeDeepDive: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -20,12 +23,14 @@ export const useAppStore = create<AppState>((set) => ({
   selectedNodeId: null,
   currentView: 'topology',
   isPanelOpen: false,
+  isDeepDiveOpen: false,
 
   // Actions
   selectNode: (nodeId) =>
     set({
       selectedNodeId: nodeId,
       isPanelOpen: nodeId !== null,
+      isDeepDiveOpen: false,
     }),
 
   setView: (view) => set({ currentView: view }),
@@ -36,5 +41,10 @@ export const useAppStore = create<AppState>((set) => ({
     set({
       isPanelOpen: false,
       selectedNodeId: null,
+      isDeepDiveOpen: false,
     }),
+
+  openDeepDive: () => set({ isDeepDiveOpen: true }),
+
+  closeDeepDive: () => set({ isDeepDiveOpen: false }),
 }));

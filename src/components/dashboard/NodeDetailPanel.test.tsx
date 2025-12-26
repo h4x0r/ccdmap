@@ -81,4 +81,25 @@ describe('NodeDetailPanel', () => {
     const { container } = render(<NodeDetailPanel {...mockNodeData} onClose={mockOnClose} />);
     expect(container.querySelector('.node-detail-panel')).toBeInTheDocument();
   });
+
+  describe('deep dive button', () => {
+    it('renders deep dive button', () => {
+      render(<NodeDetailPanel {...mockNodeData} onClose={mockOnClose} />);
+      expect(screen.getByRole('button', { name: /deep dive/i })).toBeInTheDocument();
+    });
+
+    it('calls onOpenDeepDive when deep dive button is clicked', () => {
+      const mockOpenDeepDive = vi.fn();
+      render(
+        <NodeDetailPanel
+          {...mockNodeData}
+          onClose={mockOnClose}
+          onOpenDeepDive={mockOpenDeepDive}
+        />
+      );
+      const deepDiveButton = screen.getByRole('button', { name: /deep dive/i });
+      fireEvent.click(deepDiveButton);
+      expect(mockOpenDeepDive).toHaveBeenCalledTimes(1);
+    });
+  });
 });

@@ -8,6 +8,7 @@ describe('useAppStore', () => {
       selectedNodeId: null,
       currentView: 'topology',
       isPanelOpen: false,
+      isDeepDiveOpen: false,
     });
   });
 
@@ -92,6 +93,60 @@ describe('useAppStore', () => {
       useAppStore.getState().closePanel();
 
       expect(useAppStore.getState().selectedNodeId).toBeNull();
+    });
+  });
+
+  describe('isDeepDiveOpen', () => {
+    it('starts closed', () => {
+      expect(useAppStore.getState().isDeepDiveOpen).toBe(false);
+    });
+
+    it('openDeepDive opens the deep dive panel', () => {
+      useAppStore.getState().selectNode('node-123');
+      useAppStore.getState().openDeepDive();
+
+      expect(useAppStore.getState().isDeepDiveOpen).toBe(true);
+    });
+
+    it('closeDeepDive closes the deep dive panel', () => {
+      useAppStore.getState().selectNode('node-123');
+      useAppStore.getState().openDeepDive();
+      useAppStore.getState().closeDeepDive();
+
+      expect(useAppStore.getState().isDeepDiveOpen).toBe(false);
+    });
+
+    it('closeDeepDive keeps node selected', () => {
+      useAppStore.getState().selectNode('node-123');
+      useAppStore.getState().openDeepDive();
+      useAppStore.getState().closeDeepDive();
+
+      expect(useAppStore.getState().selectedNodeId).toBe('node-123');
+    });
+
+    it('closePanel also closes deep dive', () => {
+      useAppStore.getState().selectNode('node-123');
+      useAppStore.getState().openDeepDive();
+      useAppStore.getState().closePanel();
+
+      expect(useAppStore.getState().isDeepDiveOpen).toBe(false);
+    });
+
+    it('selecting a different node closes deep dive', () => {
+      useAppStore.getState().selectNode('node-123');
+      useAppStore.getState().openDeepDive();
+      useAppStore.getState().selectNode('node-456');
+
+      expect(useAppStore.getState().isDeepDiveOpen).toBe(false);
+      expect(useAppStore.getState().selectedNodeId).toBe('node-456');
+    });
+
+    it('deselecting node closes deep dive', () => {
+      useAppStore.getState().selectNode('node-123');
+      useAppStore.getState().openDeepDive();
+      useAppStore.getState().selectNode(null);
+
+      expect(useAppStore.getState().isDeepDiveOpen).toBe(false);
     });
   });
 });

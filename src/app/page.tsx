@@ -13,6 +13,7 @@ import { calculateNetworkPulse, getPulseStatus, THRESHOLDS, calculateFinalizatio
 import { Sparkline } from '@/components/dashboard/Sparkline';
 import { MRTGChart, type MRTGDataPoint } from '@/components/dashboard/MRTGChart';
 import { NodeDetailPanel } from '@/components/dashboard/NodeDetailPanel';
+import { DeepDivePanel } from '@/components/deep-dive';
 import { type HealthStatus } from '@/components/dashboard/HealthTimeline';
 import { MobileHome } from '@/components/mobile/MobileHome';
 import { CopyableTooltip } from '@/components/ui/CopyableTooltip';
@@ -72,7 +73,7 @@ export default function Home() {
 }
 
 function DesktopHome() {
-  const { currentView, setView, selectedNodeId, selectNode } = useAppStore();
+  const { currentView, setView, selectedNodeId, selectNode, isDeepDiveOpen, openDeepDive, closeDeepDive } = useAppStore();
   const { metrics: networkMetrics, dataUpdatedAt } = useNetworkMetrics();
   const { data: nodes } = useNodes();
   const { playAcquisitionSequence } = useAudio();
@@ -504,6 +505,7 @@ function DesktopHome() {
                   bandwidthOutHistory={nodeHistoryData.bandwidthOutHistory}
                   peerCountHistory={nodeHistoryData.peerCountHistory}
                   onClose={() => selectNode(null)}
+                  onOpenDeepDive={openDeepDive}
                 />
               ) : (
                 <div className="bb-node-detail-empty" style={{
@@ -829,6 +831,16 @@ function DesktopHome() {
           </div>
         </div>
       </div>
+
+      {/* ===== DEEP DIVE PANEL ===== */}
+      {selectedNode && (
+        <DeepDivePanel
+          nodeId={selectedNode.nodeId}
+          nodeName={selectedNode.nodeName || 'Unnamed Node'}
+          isOpen={isDeepDiveOpen}
+          onClose={closeDeepDive}
+        />
+      )}
 
       {/* ===== STATUS BAR ===== */}
       <div className="bb-status-bar">
