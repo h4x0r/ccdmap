@@ -117,12 +117,13 @@ export function DeepDivePanel({
         right: 0,
         width: '60%',
         height: '100vh',
-        background: 'var(--bb-bg)',
+        background: 'var(--bb-black, #0a0a0f)',
         borderLeft: '2px solid var(--bb-border)',
         zIndex: 1000,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.5)',
       }}
     >
       {/* Header */}
