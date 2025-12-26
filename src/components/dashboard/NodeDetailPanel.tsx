@@ -1,8 +1,9 @@
 'use client';
 
-import { HealthTimeline, type HealthStatus } from './HealthTimeline';
-import { MRTGChart, type MRTGDataPoint } from './MRTGChart';
-import { MRTGMirroredChart } from './MRTGMirroredChart';
+import { useMemo } from 'react';
+import { type HealthStatus } from './HealthTimeline';
+import { type MRTGDataPoint } from './MRTGChart';
+import { MiniMetricTrack } from './MiniMetricTrack';
 
 export interface NodeDetailPanelProps {
   nodeId: string;
@@ -85,54 +86,38 @@ export function NodeDetailPanel({
         </div>
       </div>
 
-      {/* Health Timeline Strip */}
-      <div
-        style={{
-          padding: '8px 12px',
-          borderBottom: '1px solid var(--bb-border)',
+      {/* Metric Tracks - matching DeepDivePanel style */}
+      <MiniMetricTrack
+        label="Health"
+        metric="health"
+        healthData={healthHistory}
+        height={30}
+        collapsible
+      />
+      <MiniMetricTrack
+        label="Latency"
+        metric="latency"
+        data={latencyHistory}
+        height={50}
+        collapsible
+      />
+      <MiniMetricTrack
+        label="Bandwidth"
+        metric="bandwidth"
+        bandwidthData={{
+          inbound: bandwidthInHistory,
+          outbound: bandwidthOutHistory,
         }}
-      >
-        <HealthTimeline data={healthHistory} showLabels height={12} />
-      </div>
-
-      {/* Mini Charts Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
-          padding: '8px 12px',
-        }}
-      >
-        {/* Latency Chart */}
-        <MRTGChart
-          data={latencyHistory}
-          label="Latency"
-          unit="ms"
-          color="cyan"
-          height={80}
-          showLabels={false}
-        />
-
-        {/* Mirrored Bandwidth Chart */}
-        <MRTGMirroredChart
-          outboundData={bandwidthOutHistory}
-          inboundData={bandwidthInHistory}
-          label="Bandwidth"
-          unit="KB/s"
-          height={80}
-        />
-
-        {/* Peer Count Chart */}
-        <MRTGChart
-          data={peerCountHistory}
-          label="Peers"
-          unit=""
-          color="green"
-          height={80}
-          showLabels={false}
-        />
-      </div>
+        height={50}
+        collapsible
+      />
+      <MiniMetricTrack
+        label="Peers"
+        metric="peers"
+        data={peerCountHistory}
+        height={50}
+        collapsible
+      />
     </div>
   );
 }

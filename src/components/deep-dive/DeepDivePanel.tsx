@@ -5,6 +5,7 @@ import { useTimelineZoom } from '@/hooks/useTimelineZoom';
 import { useDeepDiveData } from '@/hooks/useDeepDiveData';
 import { TimelineRuler } from './TimelineRuler';
 import { MetricTrack } from './MetricTrack';
+import { NodeSelector, type NodeInfo } from './NodeSelector';
 import type { TimeRange, TimeRangePreset } from '@/lib/timeline';
 
 const HOUR = 60 * 60 * 1000;
@@ -25,6 +26,7 @@ export interface DeepDivePanelProps {
   isOpen: boolean;
   onClose: () => void;
   onAddComparisonNode?: (nodeId: string) => void;
+  allNodes?: NodeInfo[];
 }
 
 export function DeepDivePanel({
@@ -32,6 +34,7 @@ export function DeepDivePanel({
   nodeName,
   isOpen,
   onClose,
+  allNodes = [],
 }: DeepDivePanelProps) {
   const now = useMemo(() => Date.now(), []);
   const bounds: TimeRange = useMemo(
@@ -51,6 +54,7 @@ export function DeepDivePanel({
   });
   const [crosshairTimestamp, setCrosshairTimestamp] = useState<number | undefined>();
   const [comparisonNodeIds, setComparisonNodeIds] = useState<string[]>([]);
+  const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
 
   const { range, zoomIn, zoomOut, pan, setPreset } = useTimelineZoom(bounds);
 
@@ -86,14 +90,22 @@ export function DeepDivePanel({
   }, []);
 
   const handleAddComparison = useCallback(() => {
-    // In a real implementation, this would open a search dialog
-    // For now, we just expose the capability
-    const newNodeId = prompt('Enter node ID to compare:');
-    if (newNodeId) {
-      addComparisonNode(newNodeId);
-      setComparisonNodeIds((prev) => [...prev, newNodeId]);
-    }
-  }, [addComparisonNode]);
+    setIsNodeSelectorOpen(true);
+  }, []);
+
+  const handleNodeSelected = useCallback(
+    (selectedNodeId: string) => {
+      addComparisonNode(selectedNodeId);
+      setComparisonNodeIds((prev) => [...prev, selectedNodeId]);
+    },
+    [addComparisonNode]
+  );
+
+  // Exclude primary node and already-compared nodes from selector
+  const excludedNodeIds = useMemo(
+    () => [nodeId, ...comparisonNodeIds],
+    [nodeId, comparisonNodeIds]
+  );
 
   if (!isOpen) {
     return null;
@@ -377,6 +389,15 @@ export function DeepDivePanel({
           crosshairTimestamp={crosshairTimestamp}
         />
       </div>
+
+      {/* Node selector dialog */}
+      <NodeSelector
+        isOpen={isNodeSelectorOpen}
+        nodes={allNodes}
+        excludeNodeIds={excludedNodeIds}
+        onSelect={handleNodeSelected}
+        onClose={() => setIsNodeSelectorOpen(false)}
+      />
     </div>
   );
 }

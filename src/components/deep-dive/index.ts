@@ -6,3 +6,6 @@ export type { TimelineRulerProps } from './TimelineRuler';
 
 export { MetricTrack } from './MetricTrack';
 export type { MetricTrackProps, MetricType } from './MetricTrack';
+
+export { NodeSelector } from './NodeSelector';
+export type { NodeSelectorProps, NodeInfo } from './NodeSelector';

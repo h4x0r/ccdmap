@@ -57,24 +57,24 @@ describe('NodeDetailPanel', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the health timeline', () => {
-    const { container } = render(<NodeDetailPanel {...mockNodeData} onClose={mockOnClose} />);
-    expect(container.querySelector('.health-timeline')).toBeInTheDocument();
+  it('renders health track', () => {
+    render(<NodeDetailPanel {...mockNodeData} onClose={mockOnClose} />);
+    expect(screen.getByText('HEALTH')).toBeInTheDocument();
   });
 
-  it('renders latency chart', () => {
+  it('renders latency track', () => {
     render(<NodeDetailPanel {...mockNodeData} onClose={mockOnClose} />);
-    expect(screen.getByText('Latency')).toBeInTheDocument();
+    expect(screen.getByText('LATENCY')).toBeInTheDocument();
   });
 
-  it('renders bandwidth chart', () => {
+  it('renders bandwidth track', () => {
     render(<NodeDetailPanel {...mockNodeData} onClose={mockOnClose} />);
-    expect(screen.getByText('Bandwidth')).toBeInTheDocument();
+    expect(screen.getByText('BANDWIDTH')).toBeInTheDocument();
   });
 
-  it('renders peer count chart', () => {
+  it('renders peers track', () => {
     render(<NodeDetailPanel {...mockNodeData} onClose={mockOnClose} />);
-    expect(screen.getByText(/Peers/i)).toBeInTheDocument();
+    expect(screen.getByText('PEERS')).toBeInTheDocument();
   });
 
   it('renders the panel container', () => {

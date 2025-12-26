@@ -839,6 +839,7 @@ function DesktopHome() {
           nodeName={selectedNode.nodeName || 'Unnamed Node'}
           isOpen={isDeepDiveOpen}
           onClose={closeDeepDive}
+          allNodes={nodes?.map(n => ({ nodeId: n.nodeId, nodeName: n.nodeName || n.nodeId })) ?? []}
         />
       )}
 
