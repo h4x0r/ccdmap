@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { ConcordiumClient } from '@/lib/concordium-client';
 
 /**
  * GET /api/debug/grpc
  *
- * Debug endpoint to test gRPC connectivity
+ * Debug endpoint to test gRPC connectivity with raw data
  */
 export async function GET() {
   const results: Record<string, unknown> = {
@@ -14,33 +13,40 @@ export async function GET() {
   };
 
   try {
-    const client = new ConcordiumClient('grpc.mainnet.concordium.software', 20000);
+    // Dynamic import to match the client
+    const { ConcordiumGRPCNodeClient, credentials } = await import(
+      '@concordium/web-sdk/nodejs'
+    );
+
+    const client = new ConcordiumGRPCNodeClient(
+      'grpc.mainnet.concordium.software',
+      20000,
+      credentials.createSsl(),
+      { timeout: 15000 }
+    );
 
     const startTime = Date.now();
-    const peers = await client.getPeersInfo();
+    const peersInfo = await client.getPeersInfo();
     const duration = Date.now() - startTime;
 
     results.success = true;
-    results.peersFound = peers.length;
+    results.rawPeersCount = peersInfo.length;
     results.durationMs = duration;
 
-    if (peers.length > 0) {
-      results.samplePeer = {
-        peerId: peers[0].peerId,
-        ipAddress: peers[0].ipAddress,
-        port: peers[0].port,
-        isBootstrapper: peers[0].isBootstrapper,
-      };
+    if (peersInfo.length > 0) {
+      // Show raw structure of first peer
+      const firstPeer = peersInfo[0];
+      results.rawFirstPeer = JSON.parse(
+        JSON.stringify(firstPeer, (k, v) => (typeof v === 'bigint' ? v.toString() : v))
+      );
+
+      // Show all keys available
+      results.peerKeys = Object.keys(firstPeer);
     }
   } catch (error) {
     results.success = false;
     results.error = error instanceof Error ? error.message : 'Unknown error';
     results.errorType = error?.constructor?.name;
-
-    // Include stack trace in development
-    if (process.env.NODE_ENV === 'development' && error instanceof Error) {
-      results.stack = error.stack;
-    }
   }
 
   return NextResponse.json(results);
