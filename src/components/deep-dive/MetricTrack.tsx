@@ -185,38 +185,51 @@ export function MetricTrack({
     });
   }, [metric, primaryData, range]);
 
-  // Bandwidth mirrored paths
-  const bandwidthPaths = useMemo(() => {
+  // Bandwidth bars (network monitoring style)
+  const bandwidthBars = useMemo(() => {
     if (metric !== 'bandwidth') return null;
 
     const centerY = chartHeight / 2;
     const halfHeight = (chartHeight - padding.top - padding.bottom) / 2;
 
-    return allData.map(({ nodeId, data, color }) => {
-      // Max value for scaling
-      const maxBw = Math.max(
-        ...data.map((d) => Math.max(d.bytesIn ?? 0, d.bytesOut ?? 0)),
-        1
-      );
+    // Use primary data for bar generation
+    const data = primaryData;
+    if (data.length === 0) return null;
 
-      const outPoints: PathPoint[] = data.map((d) => ({
-        x: timestampToX(d.timestamp),
-        y: centerY - ((d.bytesOut ?? 0) / maxBw) * halfHeight * 0.9,
-      }));
+    // Max value for scaling
+    const maxBw = Math.max(
+      ...data.map((d) => Math.max(d.bytesIn ?? 0, d.bytesOut ?? 0)),
+      1
+    );
 
-      const inPoints: PathPoint[] = data.map((d) => ({
-        x: timestampToX(d.timestamp),
-        y: centerY + ((d.bytesIn ?? 0) / maxBw) * halfHeight * 0.9,
-      }));
+    const chartW = chartWidth - padding.left - padding.right;
+    const barWidth = chartW / data.length;
+    const barGap = barWidth * 0.1;
 
+    const outBars = data.map((d, i) => {
+      const x = padding.left + i * barWidth + barGap / 2;
+      const barHeight = ((d.bytesOut ?? 0) / maxBw) * halfHeight * 0.9;
       return {
-        nodeId,
-        outPath: generateLinePath(outPoints),
-        inPath: generateLinePath(inPoints),
-        color,
+        x,
+        y: centerY - barHeight,
+        width: barWidth - barGap,
+        height: barHeight,
       };
     });
-  }, [metric, allData, range, chartHeight, padding]);
+
+    const inBars = data.map((d, i) => {
+      const x = padding.left + i * barWidth + barGap / 2;
+      const barHeight = ((d.bytesIn ?? 0) / maxBw) * halfHeight * 0.9;
+      return {
+        x,
+        y: centerY,
+        width: barWidth - barGap,
+        height: barHeight,
+      };
+    });
+
+    return { outBars, inBars };
+  }, [metric, primaryData, range, chartWidth, chartHeight, padding]);
 
   // Crosshair values
   const crosshairValues = useMemo(() => {
@@ -308,8 +321,8 @@ export function MetricTrack({
                 />
               ))}
 
-            {/* Bandwidth mirrored paths - network monitoring style */}
-            {bandwidthPaths && (
+            {/* Bandwidth bars - network monitoring style */}
+            {bandwidthBars && (
               <g>
                 {/* Grid lines */}
                 <line
@@ -341,43 +354,29 @@ export function MetricTrack({
                   strokeDasharray="2,2"
                   opacity={0.3}
                 />
-                {bandwidthPaths.map(({ nodeId, outPath, inPath }) => (
-                  <g key={nodeId}>
-                    {/* Outbound glow + line */}
-                    <path
-                      d={outPath}
-                      fill="none"
-                      stroke={BANDWIDTH_COLORS.outbound.glow}
-                      strokeWidth="2"
-                      vectorEffect="non-scaling-stroke"
-                      opacity={0.4}
-                    />
-                    <path
-                      d={outPath}
-                      fill="none"
-                      stroke={BANDWIDTH_COLORS.outbound.stroke}
-                      strokeWidth="1.2"
-                      vectorEffect="non-scaling-stroke"
-                      strokeLinecap="round"
-                    />
-                    {/* Inbound glow + line */}
-                    <path
-                      d={inPath}
-                      fill="none"
-                      stroke={BANDWIDTH_COLORS.inbound.glow}
-                      strokeWidth="2"
-                      vectorEffect="non-scaling-stroke"
-                      opacity={0.4}
-                    />
-                    <path
-                      d={inPath}
-                      fill="none"
-                      stroke={BANDWIDTH_COLORS.inbound.stroke}
-                      strokeWidth="1.2"
-                      vectorEffect="non-scaling-stroke"
-                      strokeLinecap="round"
-                    />
-                  </g>
+                {/* Outbound bars */}
+                {bandwidthBars.outBars.map((bar, i) => (
+                  <rect
+                    key={`out-${i}`}
+                    x={bar.x}
+                    y={bar.y}
+                    width={bar.width}
+                    height={Math.max(0.5, bar.height)}
+                    fill={BANDWIDTH_COLORS.outbound.stroke}
+                    opacity={0.85}
+                  />
+                ))}
+                {/* Inbound bars */}
+                {bandwidthBars.inBars.map((bar, i) => (
+                  <rect
+                    key={`in-${i}`}
+                    x={bar.x}
+                    y={bar.y}
+                    width={bar.width}
+                    height={Math.max(0.5, bar.height)}
+                    fill={BANDWIDTH_COLORS.inbound.stroke}
+                    opacity={0.85}
+                  />
                 ))}
               </g>
             )}

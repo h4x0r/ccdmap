@@ -174,8 +174,8 @@ export function MiniMetricTrack({
     return generateLinePath(data, chartWidth, chartHeight, padding);
   }, [data, metric]);
 
-  // Bandwidth mirrored paths
-  const bandwidthPaths = useMemo(() => {
+  // Bandwidth bars (network monitoring style)
+  const bandwidthBars = useMemo(() => {
     if (metric !== 'bandwidth' || !bandwidthData) return null;
 
     const centerY = chartHeight / 2;
@@ -185,23 +185,33 @@ export function MiniMetricTrack({
     const maxBw = Math.max(...allValues, 1);
 
     const chartW = chartWidth - padding.left - padding.right;
+    const barCount = Math.max(bandwidthData.outbound.length, bandwidthData.inbound.length, 1);
+    const barWidth = chartW / barCount;
+    const barGap = barWidth * 0.1;
 
-    const outPoints = bandwidthData.outbound.map((d, i) => {
-      const x = padding.left + (i / Math.max(1, bandwidthData.outbound.length - 1)) * chartW;
-      const y = centerY - (d.value / maxBw) * halfHeight * 0.9;
-      return `${x},${y}`;
+    const outBars = bandwidthData.outbound.map((d, i) => {
+      const x = padding.left + i * barWidth + barGap / 2;
+      const barHeight = (d.value / maxBw) * halfHeight * 0.9;
+      return {
+        x,
+        y: centerY - barHeight,
+        width: barWidth - barGap,
+        height: barHeight,
+      };
     });
 
-    const inPoints = bandwidthData.inbound.map((d, i) => {
-      const x = padding.left + (i / Math.max(1, bandwidthData.inbound.length - 1)) * chartW;
-      const y = centerY + (d.value / maxBw) * halfHeight * 0.9;
-      return `${x},${y}`;
+    const inBars = bandwidthData.inbound.map((d, i) => {
+      const x = padding.left + i * barWidth + barGap / 2;
+      const barHeight = (d.value / maxBw) * halfHeight * 0.9;
+      return {
+        x,
+        y: centerY,
+        width: barWidth - barGap,
+        height: barHeight,
+      };
     });
 
-    return {
-      outPath: outPoints.length > 0 ? `M ${outPoints.join(' L ')}` : '',
-      inPath: inPoints.length > 0 ? `M ${inPoints.join(' L ')}` : '',
-    };
+    return { outBars, inBars };
   }, [metric, bandwidthData]);
 
   const lineColor =
@@ -283,8 +293,8 @@ export function MiniMetricTrack({
               />
             ))}
 
-          {/* Bandwidth mirrored - network monitoring style */}
-          {bandwidthPaths && (
+          {/* Bandwidth bars - network monitoring style */}
+          {bandwidthBars && (
             <>
               {/* Grid lines */}
               <line
@@ -316,40 +326,30 @@ export function MiniMetricTrack({
                 strokeDasharray="1,1"
                 opacity={0.3}
               />
-              {/* Outbound (upload) - glow + line */}
-              <path
-                d={bandwidthPaths.outPath}
-                fill="none"
-                stroke={BANDWIDTH_COLORS.outbound.glow}
-                strokeWidth="2"
-                vectorEffect="non-scaling-stroke"
-                opacity={0.4}
-              />
-              <path
-                d={bandwidthPaths.outPath}
-                fill="none"
-                stroke={BANDWIDTH_COLORS.outbound.stroke}
-                strokeWidth="1.2"
-                vectorEffect="non-scaling-stroke"
-                strokeLinecap="round"
-              />
-              {/* Inbound (download) - glow + line */}
-              <path
-                d={bandwidthPaths.inPath}
-                fill="none"
-                stroke={BANDWIDTH_COLORS.inbound.glow}
-                strokeWidth="2"
-                vectorEffect="non-scaling-stroke"
-                opacity={0.4}
-              />
-              <path
-                d={bandwidthPaths.inPath}
-                fill="none"
-                stroke={BANDWIDTH_COLORS.inbound.stroke}
-                strokeWidth="1.2"
-                vectorEffect="non-scaling-stroke"
-                strokeLinecap="round"
-              />
+              {/* Outbound bars */}
+              {bandwidthBars.outBars.map((bar, i) => (
+                <rect
+                  key={`out-${i}`}
+                  x={bar.x}
+                  y={bar.y}
+                  width={bar.width}
+                  height={Math.max(0.5, bar.height)}
+                  fill={BANDWIDTH_COLORS.outbound.stroke}
+                  opacity={0.85}
+                />
+              ))}
+              {/* Inbound bars */}
+              {bandwidthBars.inBars.map((bar, i) => (
+                <rect
+                  key={`in-${i}`}
+                  x={bar.x}
+                  y={bar.y}
+                  width={bar.width}
+                  height={Math.max(0.5, bar.height)}
+                  fill={BANDWIDTH_COLORS.inbound.stroke}
+                  opacity={0.85}
+                />
+              ))}
             </>
           )}
 

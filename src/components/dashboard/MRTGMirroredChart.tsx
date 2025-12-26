@@ -56,15 +56,10 @@ export function MRTGMirroredChart({
   const latestOutbound = outboundData.length > 0 ? outboundData[outboundData.length - 1].value : 0;
   const latestInbound = inboundData.length > 0 ? inboundData[inboundData.length - 1].value : 0;
 
-  const { outboundPath, inboundPath, outboundArea, inboundArea, yMax } = useMemo(() => {
+  // Generate bars for bandwidth visualization
+  const { outboundBars, inboundBars, yMax } = useMemo(() => {
     if (outboundData.length === 0 && inboundData.length === 0) {
-      return {
-        outboundPath: '',
-        inboundPath: '',
-        outboundArea: '',
-        inboundArea: '',
-        yMax: 100,
-      };
+      return { outboundBars: [], inboundBars: [], yMax: 100 };
     }
 
     // Find max value across both datasets for symmetric scaling
@@ -77,39 +72,35 @@ export function MRTGMirroredChart({
 
     const chartHeight = (viewBoxHeight - padding.top - padding.bottom) / 2;
     const chartWidth = 100 - padding.left - padding.right;
+    const barCount = Math.max(outboundData.length, inboundData.length, 1);
+    const barWidth = chartWidth / barCount;
+    const barGap = barWidth * 0.1; // 10% gap between bars
 
-    // Generate outbound path (above center line)
-    const outboundPoints = outboundData.map((d, i) => {
-      const x = padding.left + (i / Math.max(1, outboundData.length - 1)) * chartWidth;
-      const y = centerY - (d.value / yMax) * chartHeight;
-      return { x, y };
+    // Generate outbound bars (above center line)
+    const outboundBars = outboundData.map((d, i) => {
+      const x = padding.left + i * barWidth + barGap / 2;
+      const barHeight = (d.value / yMax) * chartHeight;
+      return {
+        x,
+        y: centerY - barHeight,
+        width: barWidth - barGap,
+        height: barHeight,
+      };
     });
 
-    // Generate inbound path (below center line)
-    const inboundPoints = inboundData.map((d, i) => {
-      const x = padding.left + (i / Math.max(1, inboundData.length - 1)) * chartWidth;
-      const y = centerY + (d.value / yMax) * chartHeight;
-      return { x, y };
+    // Generate inbound bars (below center line)
+    const inboundBars = inboundData.map((d, i) => {
+      const x = padding.left + i * barWidth + barGap / 2;
+      const barHeight = (d.value / yMax) * chartHeight;
+      return {
+        x,
+        y: centerY,
+        width: barWidth - barGap,
+        height: barHeight,
+      };
     });
 
-    const outboundPath = outboundPoints.length > 0
-      ? `M ${outboundPoints.map(p => `${p.x},${p.y}`).join(' L ')}`
-      : '';
-
-    const inboundPath = inboundPoints.length > 0
-      ? `M ${inboundPoints.map(p => `${p.x},${p.y}`).join(' L ')}`
-      : '';
-
-    // Area fills
-    const outboundArea = outboundPoints.length > 0
-      ? `M ${padding.left},${centerY} L ${outboundPoints.map(p => `${p.x},${p.y}`).join(' L ')} L ${padding.left + chartWidth},${centerY} Z`
-      : '';
-
-    const inboundArea = inboundPoints.length > 0
-      ? `M ${padding.left},${centerY} L ${inboundPoints.map(p => `${p.x},${p.y}`).join(' L ')} L ${padding.left + chartWidth},${centerY} Z`
-      : '';
-
-    return { outboundPath, inboundPath, outboundArea, inboundArea, yMax };
+    return { outboundBars, inboundBars, yMax };
   }, [outboundData, inboundData, viewBoxHeight, centerY, padding.top, padding.bottom, padding.left, padding.right]);
 
   // Calculate quarter grid positions
@@ -139,25 +130,6 @@ export function MRTGMirroredChart({
         className="bb-mrtg-svg"
         style={{ height: 'calc(100% - 22px)' }}
       >
-        {/* Gradient definitions for area fills */}
-        <defs>
-          <linearGradient id="outboundGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={BANDWIDTH_COLORS.outbound.stroke} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={BANDWIDTH_COLORS.outbound.stroke} stopOpacity="0.05" />
-          </linearGradient>
-          <linearGradient id="inboundGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={BANDWIDTH_COLORS.inbound.stroke} stopOpacity="0.05" />
-            <stop offset="100%" stopColor={BANDWIDTH_COLORS.inbound.stroke} stopOpacity="0.3" />
-          </linearGradient>
-          {/* Glow filter for lines */}
-          <filter id="lineGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="1" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
 
         {/* Grid lines */}
         {showGrid && (
@@ -217,55 +189,31 @@ export function MRTGMirroredChart({
           </g>
         )}
 
-        {/* Outbound area fill (above center) */}
-        <path
-          d={outboundArea}
-          fill="url(#outboundGradient)"
-        />
+        {/* Outbound bars (above center) */}
+        {outboundBars.map((bar, i) => (
+          <rect
+            key={`out-${i}`}
+            x={bar.x}
+            y={bar.y}
+            width={bar.width}
+            height={Math.max(0.5, bar.height)}
+            fill={BANDWIDTH_COLORS.outbound.stroke}
+            opacity={0.85}
+          />
+        ))}
 
-        {/* Inbound area fill (below center) */}
-        <path
-          d={inboundArea}
-          fill="url(#inboundGradient)"
-        />
-
-        {/* Outbound line with glow */}
-        <path
-          d={outboundPath}
-          fill="none"
-          stroke={BANDWIDTH_COLORS.outbound.glow}
-          strokeWidth="2"
-          vectorEffect="non-scaling-stroke"
-          opacity={0.5}
-        />
-        <path
-          d={outboundPath}
-          fill="none"
-          stroke={BANDWIDTH_COLORS.outbound.stroke}
-          strokeWidth="1.2"
-          vectorEffect="non-scaling-stroke"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Inbound line with glow */}
-        <path
-          d={inboundPath}
-          fill="none"
-          stroke={BANDWIDTH_COLORS.inbound.glow}
-          strokeWidth="2"
-          vectorEffect="non-scaling-stroke"
-          opacity={0.5}
-        />
-        <path
-          d={inboundPath}
-          fill="none"
-          stroke={BANDWIDTH_COLORS.inbound.stroke}
-          strokeWidth="1.2"
-          vectorEffect="non-scaling-stroke"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        {/* Inbound bars (below center) */}
+        {inboundBars.map((bar, i) => (
+          <rect
+            key={`in-${i}`}
+            x={bar.x}
+            y={bar.y}
+            width={bar.width}
+            height={Math.max(0.5, bar.height)}
+            fill={BANDWIDTH_COLORS.inbound.stroke}
+            opacity={0.85}
+          />
+        ))}
 
         {/* Y-axis labels with direction indicators */}
         <text

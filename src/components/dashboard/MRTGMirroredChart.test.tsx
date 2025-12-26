@@ -26,7 +26,7 @@ describe('MRTGMirroredChart', () => {
     expect(screen.getByText('Bandwidth')).toBeInTheDocument();
   });
 
-  it('renders SVG with mirrored chart structure', () => {
+  it('renders SVG with mirrored bar chart structure', () => {
     const { container } = render(
       <MRTGMirroredChart
         outboundData={mockData.outbound}
@@ -39,9 +39,9 @@ describe('MRTGMirroredChart', () => {
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
 
-    // Should have paths for both outbound and inbound
-    const paths = container.querySelectorAll('path');
-    expect(paths.length).toBeGreaterThanOrEqual(2);
+    // Should have rect bars for both outbound and inbound
+    const rects = container.querySelectorAll('rect');
+    expect(rects.length).toBeGreaterThanOrEqual(2);
   });
 
   it('displays current values for both directions', () => {

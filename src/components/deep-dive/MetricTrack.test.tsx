@@ -77,14 +77,14 @@ describe('MetricTrack', () => {
       expect(chart.querySelectorAll('rect').length).toBeGreaterThan(0);
     });
 
-    it('renders bandwidth as mirrored chart', () => {
+    it('renders bandwidth as mirrored bar chart', () => {
       render(
         <MetricTrack {...defaultProps} metric="bandwidth" label="Bandwidth" />
       );
 
       const chart = screen.getByTestId('metric-chart');
-      // Should have paths for both in and out
-      expect(chart.querySelectorAll('path').length).toBeGreaterThanOrEqual(2);
+      // Should have rect bars for both in and out
+      expect(chart.querySelectorAll('rect').length).toBeGreaterThanOrEqual(2);
     });
   });
 
