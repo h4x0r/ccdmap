@@ -9,7 +9,6 @@ interface AppState {
   isPanelOpen: boolean;
   isDeepDiveOpen: boolean;
   isHelpOpen: boolean;
-  isTopologyAnalysisOpen: boolean;
 
   // Actions
   selectNode: (nodeId: string | null) => void;
@@ -20,8 +19,6 @@ interface AppState {
   closeDeepDive: () => void;
   openHelp: () => void;
   closeHelp: () => void;
-  openTopologyAnalysis: () => void;
-  closeTopologyAnalysis: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -31,7 +28,6 @@ export const useAppStore = create<AppState>((set) => ({
   isPanelOpen: false,
   isDeepDiveOpen: false,
   isHelpOpen: false,
-  isTopologyAnalysisOpen: false,
 
   // Actions
   selectNode: (nodeId) =>
@@ -59,8 +55,4 @@ export const useAppStore = create<AppState>((set) => ({
   openHelp: () => set({ isHelpOpen: true }),
 
   closeHelp: () => set({ isHelpOpen: false }),
-
-  openTopologyAnalysis: () => set({ isTopologyAnalysisOpen: true }),
-
-  closeTopologyAnalysis: () => set({ isTopologyAnalysisOpen: false }),
 }));
