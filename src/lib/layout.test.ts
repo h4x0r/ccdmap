@@ -4,6 +4,7 @@ import {
   getCentralityBucket,
   getCentralityColumn,
   getGridLayoutedElements,
+  getForceDirectedTierLayout,
   CENTRALITY_BUCKETS,
 } from './layout';
 import type { ConcordiumNodeData, ConcordiumNode } from './transforms';
@@ -289,6 +290,175 @@ describe('Grid Layout', () => {
       expect(result.nodes).toHaveLength(1);
       expect(result.nodes[0].position.x).toBeGreaterThan(0);
       expect(result.nodes[0].position.y).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe('Force-Directed Tier Layout', () => {
+  describe('getForceDirectedTierLayout', () => {
+    it('returns empty result for empty input', () => {
+      const result = getForceDirectedTierLayout([], []);
+      expect(result.nodes).toHaveLength(0);
+      expect(result.edges).toHaveLength(0);
+      expect(result.tierLabels).toHaveLength(0);
+    });
+
+    it('assigns tier based on node properties', () => {
+      const nodes = [
+        createMockNode({ id: 'baker1', isBaker: true, peersCount: 10 }),
+        createMockNode({ id: 'hub1', peersCount: 20 }),
+        createMockNode({ id: 'standard1', peersCount: 8 }),
+        createMockNode({ id: 'edge1', peersCount: 2 }),
+      ];
+
+      const result = getForceDirectedTierLayout(nodes, []);
+
+      const tierMap = new Map(result.nodes.map((n) => [n.id, n.data.tier]));
+      expect(tierMap.get('baker1')).toBe('baker');
+      expect(tierMap.get('hub1')).toBe('hub');
+      expect(tierMap.get('standard1')).toBe('standard');
+      expect(tierMap.get('edge1')).toBe('edge');
+    });
+
+    it('positions baker tier at top (lowest Y)', () => {
+      const nodes = [
+        createMockNode({ id: 'baker1', isBaker: true, peersCount: 10 }),
+        createMockNode({ id: 'edge1', peersCount: 2 }),
+      ];
+
+      const result = getForceDirectedTierLayout(nodes, []);
+
+      const bakerNode = result.nodes.find((n) => n.id === 'baker1')!;
+      const edgeNode = result.nodes.find((n) => n.id === 'edge1')!;
+      expect(bakerNode.position.y).toBeLessThan(edgeNode.position.y);
+    });
+
+    it('places disconnected nodes (peersCount 0) in disconnected section on right', () => {
+      const nodes = [
+        createMockNode({ id: 'connected', peersCount: 8 }),
+        createMockNode({ id: 'disconnected', peersCount: 0 }),
+      ];
+
+      const result = getForceDirectedTierLayout(nodes, [], { width: 1400 });
+
+      const connectedNode = result.nodes.find((n) => n.id === 'connected')!;
+      const disconnectedNode = result.nodes.find((n) => n.id === 'disconnected')!;
+
+      // Disconnected section is on the right (last 15% of width)
+      // Main section is left 85% = 0 to 1190
+      // Disconnected section is right 15% = 1190 to 1400
+      expect(disconnectedNode.position.x).toBeGreaterThan(connectedNode.position.x);
+      expect(disconnectedNode.position.x).toBeGreaterThan(1100); // Should be in right section
+    });
+
+    it('keeps nodes within their tier Y bands', () => {
+      const nodes = [
+        createMockNode({ id: 'baker1', isBaker: true, peersCount: 10 }),
+        createMockNode({ id: 'baker2', isBaker: true, peersCount: 15 }),
+        createMockNode({ id: 'hub1', peersCount: 20 }),
+        createMockNode({ id: 'hub2', peersCount: 18 }),
+      ];
+
+      const result = getForceDirectedTierLayout(nodes, []);
+
+      const baker1 = result.nodes.find((n) => n.id === 'baker1')!;
+      const baker2 = result.nodes.find((n) => n.id === 'baker2')!;
+      const hub1 = result.nodes.find((n) => n.id === 'hub1')!;
+      const hub2 = result.nodes.find((n) => n.id === 'hub2')!;
+
+      // Bakers should have similar Y (within tier band tolerance of ~50px)
+      expect(Math.abs(baker1.position.y - baker2.position.y)).toBeLessThan(50);
+
+      // Hubs should have similar Y
+      expect(Math.abs(hub1.position.y - hub2.position.y)).toBeLessThan(50);
+
+      // Bakers should be above hubs
+      expect(baker1.position.y).toBeLessThan(hub1.position.y);
+    });
+
+    it('spreads connected nodes horizontally within main section', () => {
+      const nodes = [
+        createMockNode({ id: 'node1', peersCount: 10 }),
+        createMockNode({ id: 'node2', peersCount: 10 }),
+        createMockNode({ id: 'node3', peersCount: 10 }),
+      ];
+
+      const result = getForceDirectedTierLayout(nodes, [], { width: 1400 });
+
+      // All nodes should be in main section (left 85%)
+      for (const node of result.nodes) {
+        expect(node.position.x).toBeLessThan(1200); // Main section boundary
+        expect(node.position.x).toBeGreaterThan(50); // Left padding
+      }
+
+      // Nodes should be spread out (not stacked)
+      const xPositions = result.nodes.map((n) => n.position.x).sort((a, b) => a - b);
+      const minSpread = xPositions[xPositions.length - 1] - xPositions[0];
+      expect(minSpread).toBeGreaterThan(100); // Should have some horizontal spread
+    });
+
+    it('preserves edges in output', () => {
+      const nodes = [
+        createMockNode({ id: 'a', peersCount: 8 }),
+        createMockNode({ id: 'b', peersCount: 8 }),
+      ];
+      const edges = [{ id: 'a-b', source: 'a', target: 'b' }];
+
+      const result = getForceDirectedTierLayout(nodes, edges);
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].id).toBe('a-b');
+    });
+
+    it('handles single connected node', () => {
+      const nodes = [createMockNode({ id: 'solo', peersCount: 8 })];
+
+      const result = getForceDirectedTierLayout(nodes, []);
+
+      expect(result.nodes).toHaveLength(1);
+      expect(result.nodes[0].position.x).toBeGreaterThan(0);
+      expect(result.nodes[0].position.y).toBeGreaterThan(0);
+    });
+
+    it('handles only disconnected nodes', () => {
+      const nodes = [
+        createMockNode({ id: 'iso1', peersCount: 0 }),
+        createMockNode({ id: 'iso2', peersCount: 0 }),
+      ];
+
+      const result = getForceDirectedTierLayout(nodes, [], { width: 1400 });
+
+      // Both should be in disconnected section
+      for (const node of result.nodes) {
+        expect(node.position.x).toBeGreaterThan(1100);
+      }
+    });
+
+    it('returns tier labels for connected tiers', () => {
+      const nodes = [
+        createMockNode({ id: 'baker1', isBaker: true, peersCount: 10 }),
+        createMockNode({ id: 'standard1', peersCount: 8 }),
+      ];
+
+      const result = getForceDirectedTierLayout(nodes, []);
+
+      expect(result.tierLabels.length).toBeGreaterThanOrEqual(2);
+      const labels = result.tierLabels.map((t) => t.tier);
+      expect(labels).toContain('BAKERS');
+      expect(labels).toContain('STANDARD');
+    });
+
+    it('marks disconnected section in result', () => {
+      const nodes = [
+        createMockNode({ id: 'connected', peersCount: 8 }),
+        createMockNode({ id: 'disconnected', peersCount: 0 }),
+      ];
+
+      const result = getForceDirectedTierLayout(nodes, [], { width: 1400 });
+
+      // Should have disconnected section info
+      expect(result.disconnectedSection).toBeDefined();
+      expect(result.disconnectedSection!.x).toBeGreaterThan(1100);
     });
   });
 });

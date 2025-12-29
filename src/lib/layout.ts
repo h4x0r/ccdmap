@@ -314,6 +314,280 @@ export interface GridLayoutResult {
  *
  * Nodes with the same centrality bucket are vertically aligned across tiers.
  */
+/**
+ * Force-Directed Tier Layout result with disconnected section
+ */
+export interface ForceDirectedLayoutResult {
+  nodes: Node<ConcordiumNodeData>[];
+  edges: Edge[];
+  tierLabels: TierLabelInfo[];
+  tierSeparators: { y: number }[];
+  disconnectedSection?: { x: number; width: number };
+}
+
+/**
+ * Force-Directed Tier Layout
+ *
+ * Organizes nodes in horizontal tiers with force-directed horizontal positioning:
+ * - Y-axis (rows): Node tiers (BAKER, HUB, STANDARD, EDGE)
+ * - X-axis: Force simulation spreads nodes horizontally
+ * - Nodes with shared peers attract each other
+ * - Disconnected nodes (peersCount = 0) placed in separate section on right
+ */
+export function getForceDirectedTierLayout(
+  nodes: Node<ConcordiumNodeData>[],
+  edges: Edge[],
+  options: LayoutOptions = {}
+): ForceDirectedLayoutResult {
+  const { width = 1400, height = 900 } = options;
+
+  if (nodes.length === 0) {
+    return { nodes: [], edges: [], tierLabels: [], tierSeparators: [] };
+  }
+
+  // Separate connected and disconnected nodes
+  const connectedNodes: Node<ConcordiumNodeData>[] = [];
+  const disconnectedNodes: Node<ConcordiumNodeData>[] = [];
+
+  for (const node of nodes) {
+    if (node.data.peersCount === 0) {
+      disconnectedNodes.push(node);
+    } else {
+      connectedNodes.push(node);
+    }
+  }
+
+  // Canvas division: 85% main, 15% disconnected
+  const mainSectionWidth = width * 0.85;
+  const disconnectedSectionX = mainSectionWidth;
+  const disconnectedSectionWidth = width * 0.15;
+
+  // Classify connected nodes into tiers
+  const tiers: Record<NodeTier, Node<ConcordiumNodeData>[]> = {
+    baker: [],
+    hub: [],
+    standard: [],
+    edge: [],
+  };
+
+  for (const node of connectedNodes) {
+    const tier = classifyNode(node.data);
+    tiers[tier].push(node);
+  }
+
+  // Sort nodes within each tier by peer count (highest first)
+  for (const tier of Object.keys(tiers) as NodeTier[]) {
+    tiers[tier].sort((a, b) => b.data.peersCount - a.data.peersCount);
+  }
+
+  const tierOrder: NodeTier[] = ['baker', 'hub', 'standard', 'edge'];
+
+  // Tier configuration
+  const tierConfig: Record<NodeTier, {
+    tierHeight: number;
+    tierGap: number;
+    label: string;
+  }> = {
+    baker: { tierHeight: 100, tierGap: 40, label: 'BAKERS' },
+    hub: { tierHeight: 90, tierGap: 35, label: 'HUBS' },
+    standard: { tierHeight: 80, tierGap: 30, label: 'STANDARD' },
+    edge: { tierHeight: 70, tierGap: 0, label: 'EDGE' },
+  };
+
+  // Calculate tier Y positions
+  const tierY: Record<NodeTier, number> = { baker: 0, hub: 0, standard: 0, edge: 0 };
+  let currentY = 80;
+
+  for (const tier of tierOrder) {
+    tierY[tier] = currentY;
+    if (tiers[tier].length > 0) {
+      currentY += tierConfig[tier].tierHeight + tierConfig[tier].tierGap;
+    }
+  }
+
+  // Build shared peers lookup for attraction force
+  const nodeIdSet = new Set(nodes.map(n => n.id));
+  const nodePeers: Map<string, Set<string>> = new Map();
+
+  for (const node of nodes) {
+    const peers = new Set<string>();
+    for (const peerId of node.data.node.peersList) {
+      if (nodeIdSet.has(peerId)) {
+        peers.add(peerId);
+      }
+    }
+    nodePeers.set(node.id, peers);
+  }
+
+  // Simple force simulation for horizontal positioning
+  interface SimNode {
+    id: string;
+    x: number;
+    y: number;
+    tier: NodeTier;
+    vx: number;
+  }
+
+  const simNodes: SimNode[] = [];
+  const padding = 80;
+  const usableWidth = mainSectionWidth - padding * 2;
+
+  // Initialize positions: spread evenly within tier
+  for (const tier of tierOrder) {
+    const tierNodes = tiers[tier];
+    const baseY = tierY[tier] + tierConfig[tier].tierHeight / 2;
+
+    tierNodes.forEach((node, index) => {
+      const progress = tierNodes.length === 1 ? 0.5 : index / (tierNodes.length - 1);
+      const x = padding + progress * usableWidth;
+
+      simNodes.push({
+        id: node.id,
+        x,
+        y: baseY,
+        tier,
+        vx: 0,
+      });
+    });
+  }
+
+  // Run force simulation iterations
+  const iterations = 150;
+  const repulsionStrength = 800;
+  const attractionStrength = 0.3;
+  const damping = 0.9;
+
+  for (let iter = 0; iter < iterations; iter++) {
+    // Calculate forces
+    for (let i = 0; i < simNodes.length; i++) {
+      let fx = 0;
+
+      // Repulsion from other nodes in same tier
+      for (let j = 0; j < simNodes.length; j++) {
+        if (i === j) continue;
+        if (simNodes[i].tier !== simNodes[j].tier) continue;
+
+        const dx = simNodes[i].x - simNodes[j].x;
+        const dist = Math.abs(dx) + 1; // Avoid division by zero
+        const force = repulsionStrength / (dist * dist);
+        fx += Math.sign(dx) * force;
+      }
+
+      // Attraction to nodes with shared peers
+      const myPeers = nodePeers.get(simNodes[i].id) || new Set();
+      for (let j = 0; j < simNodes.length; j++) {
+        if (i === j) continue;
+        if (simNodes[i].tier !== simNodes[j].tier) continue;
+
+        const theirPeers = nodePeers.get(simNodes[j].id) || new Set();
+        let sharedCount = 0;
+        for (const peer of myPeers) {
+          if (theirPeers.has(peer)) sharedCount++;
+        }
+
+        if (sharedCount > 0) {
+          const dx = simNodes[j].x - simNodes[i].x;
+          fx += dx * attractionStrength * Math.min(sharedCount / 5, 1);
+        }
+      }
+
+      // Boundary forces
+      if (simNodes[i].x < padding) {
+        fx += (padding - simNodes[i].x) * 0.5;
+      }
+      if (simNodes[i].x > mainSectionWidth - padding) {
+        fx += (mainSectionWidth - padding - simNodes[i].x) * 0.5;
+      }
+
+      simNodes[i].vx = (simNodes[i].vx + fx * 0.1) * damping;
+    }
+
+    // Apply velocities
+    for (const node of simNodes) {
+      node.x += node.vx;
+      // Clamp to bounds
+      node.x = Math.max(padding, Math.min(mainSectionWidth - padding, node.x));
+    }
+  }
+
+  // Create positioned nodes from simulation
+  const layoutedNodes: Node<ConcordiumNodeData>[] = [];
+  const simNodeMap = new Map(simNodes.map(sn => [sn.id, sn]));
+
+  for (const node of connectedNodes) {
+    const simNode = simNodeMap.get(node.id)!;
+    // Add small jitter for visual interest
+    const jitterX = ((hashCode(node.id) % 10) - 5);
+    const jitterY = ((hashCode(node.id + 'y') % 20) - 10);
+
+    layoutedNodes.push({
+      ...node,
+      position: {
+        x: simNode.x + jitterX,
+        y: simNode.y + jitterY,
+      },
+      data: {
+        ...node.data,
+        tier: simNode.tier,
+      },
+    });
+  }
+
+  // Position disconnected nodes in a grid on the right
+  if (disconnectedNodes.length > 0) {
+    const discPadding = 20;
+    const discUsableWidth = disconnectedSectionWidth - discPadding * 2;
+    const nodesPerRow = Math.max(1, Math.floor(discUsableWidth / 40));
+
+    disconnectedNodes.forEach((node, index) => {
+      const row = Math.floor(index / nodesPerRow);
+      const col = index % nodesPerRow;
+
+      const x = disconnectedSectionX + discPadding + (col + 0.5) * (discUsableWidth / nodesPerRow);
+      const y = 80 + row * 35;
+
+      layoutedNodes.push({
+        ...node,
+        position: { x, y },
+        data: {
+          ...node.data,
+          tier: 'edge' as NodeTier,
+        },
+      });
+    });
+  }
+
+  // Generate tier labels (only for connected tiers)
+  const tierLabels = tierOrder
+    .filter(tier => tiers[tier].length > 0)
+    .map(tier => ({
+      tier: tierConfig[tier].label,
+      y: tierY[tier],
+      endY: tierY[tier] + tierConfig[tier].tierHeight,
+    }));
+
+  // Generate tier separators
+  const tierSeparators: { y: number }[] = [];
+  for (let i = 0; i < tierOrder.length - 1; i++) {
+    const currentTier = tierOrder[i];
+    const nextTier = tierOrder[i + 1];
+    if (tiers[currentTier].length > 0 && tiers[nextTier].length > 0) {
+      const separatorY = tierY[currentTier] + tierConfig[currentTier].tierHeight + tierConfig[currentTier].tierGap / 2;
+      tierSeparators.push({ y: separatorY });
+    }
+  }
+
+  return {
+    nodes: layoutedNodes,
+    edges,
+    tierLabels,
+    tierSeparators,
+    disconnectedSection: disconnectedNodes.length > 0
+      ? { x: disconnectedSectionX, width: disconnectedSectionWidth }
+      : undefined,
+  };
+}
+
 export function getGridLayoutedElements(
   nodes: Node<ConcordiumNodeData>[],
   edges: Edge[],
