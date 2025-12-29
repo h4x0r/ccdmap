@@ -21,6 +21,8 @@ import '@xyflow/react/dist/style.css';
 import { useNodes } from '@/hooks/useNodes';
 import { useAppStore } from '@/hooks/useAppStore';
 import { useAudio } from '@/hooks/useAudio';
+import { usePropagationAnimation, type PropagationAnimationState } from '@/hooks/usePropagationAnimation';
+import type { PropagationNode } from '@/lib/block-propagation';
 import { toReactFlowNodes, toReactFlowEdges, type ConcordiumNodeData, type ConcordiumNode } from '@/lib/transforms';
 import { getForceDirectedTierLayout, type TierLabelInfo, type ForceDirectedLayoutResult } from '@/lib/layout';
 import {
@@ -32,6 +34,7 @@ import {
   type GraphEdge,
 } from '@/lib/topology-analysis';
 import { cn } from '@/lib/utils';
+import { calculateEdgeWeight, getEdgeStrokeWidth, type EdgeWeightData } from '@/lib/edge-weights';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -42,6 +45,9 @@ import {
 } from '@/components/ui/tooltip';
 import { HUDReticle, type NodeHealth, type NodeTier } from './HUDReticle';
 import { TopologyAnalysisBar } from '@/components/dashboard/TopologyAnalysisPanel';
+import { NodeFilterPanel } from './NodeFilterPanel';
+import { useNodeFilter } from '@/hooks/useNodeFilter';
+import { filterNodes, type FilterableNode } from '@/lib/node-filters';
 
 function ConcordiumNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as unknown as ConcordiumNodeData;
@@ -370,6 +376,39 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
   const { data: apiNodes, isLoading } = useNodes();
   const { selectedNodeId, selectNode } = useAppStore();
   const { playAcquisitionSequence, isMuted, toggleMute } = useAudio();
+  const filterCriteria = useNodeFilter();
+
+  // Compute which node IDs pass the current filter
+  const filteredNodeIds = useMemo(() => {
+    if (!apiNodes) return new Set<string>();
+    if (filterCriteria.tiers.length === 0 && filterCriteria.health.length === 0) {
+      // No filters active - all nodes pass
+      return new Set(apiNodes.map((n) => n.nodeId));
+    }
+
+    // Build filterable node list from initial nodes (which have tier/health)
+    const maxHeight = Math.max(...apiNodes.map((node) => node.finalizedBlockHeight ?? 0));
+    const filterableNodes: FilterableNode[] = apiNodes.map((n) => {
+      const health = !n.consensusRunning
+        ? 'issue'
+        : maxHeight - (n.finalizedBlockHeight ?? 0) > 2
+          ? 'lagging'
+          : 'healthy';
+      // Check baker status like transforms.ts does
+      const isBaker = n.bakingCommitteeMember === 'ActiveInCommittee' && n.consensusBakerId !== null;
+      const tier = isBaker
+        ? 'baker'
+        : n.peersCount >= 10
+          ? 'hub'
+          : n.peersCount >= 3
+            ? 'standard'
+            : 'edge';
+      return { id: n.nodeId, tier: tier as NodeTier, health: health as NodeHealth };
+    });
+
+    const filtered = filterNodes(filterableNodes, filterCriteria);
+    return new Set(filtered.map((n) => n.id));
+  }, [apiNodes, filterCriteria.tiers, filterCriteria.health]);
 
   const { initialNodes, initialEdges, tierLabels, tierSeparators, disconnectedSection, criticalNodeIds, bridgeEdgeKeys } = useMemo(() => {
     if (!apiNodes) return { initialNodes: [], initialEdges: [], tierLabels: [], tierSeparators: [], disconnectedSection: undefined, criticalNodeIds: new Set<string>(), bridgeEdgeKeys: new Set<string>() };
@@ -445,6 +484,57 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
     return new Set(selectedNode?.peersList || []);
   }, [selectedNodeId, apiNodes]);
 
+  // Create map of nodeId to EdgeWeightData for edge visualization
+  const nodeWeightData = useMemo(() => {
+    if (!apiNodes) return new Map<string, EdgeWeightData>();
+    const map = new Map<string, EdgeWeightData>();
+    for (const node of apiNodes) {
+      const bandwidth = (node.averageBytesPerSecondIn ?? 0) + (node.averageBytesPerSecondOut ?? 0);
+      map.set(node.nodeId, {
+        averagePing: node.averagePing,
+        bandwidth: bandwidth > 0 ? bandwidth : null,
+      });
+    }
+    return map;
+  }, [apiNodes]);
+
+  // Prepare data for block propagation animation
+  const propagationNodes = useMemo((): PropagationNode[] => {
+    if (!apiNodes) return [];
+    return apiNodes.map((n) => ({
+      id: n.nodeId,
+      blockHeight: n.finalizedBlockHeight ?? 0,
+    }));
+  }, [apiNodes]);
+
+  const propagationEdges = useMemo(() => {
+    return initialEdges.map((e) => ({ source: e.source, target: e.target }));
+  }, [initialEdges]);
+
+  // Block propagation animation hook
+  const {
+    isAnimating: isPropagating,
+    activeNodeIds: propagationActiveNodes,
+    activeEdgeKeys: propagationActiveEdges,
+    waveColor: propagationColor,
+    startAnimation: startPropagation,
+    stopAnimation: stopPropagation,
+  } = usePropagationAnimation({
+    nodes: propagationNodes,
+    edges: propagationEdges,
+  });
+
+  // Find a baker node to start propagation from (highest block height)
+  const propagationOrigin = useMemo(() => {
+    if (!apiNodes || apiNodes.length === 0) return null;
+    const bakers = apiNodes.filter((n) => n.peerType === 'Node' && (n.finalizedBlockHeight ?? 0) > 0);
+    if (bakers.length === 0) return null;
+    // Pick the one with highest block height (most likely origin)
+    return bakers.reduce((max, n) =>
+      (n.finalizedBlockHeight ?? 0) > (max.finalizedBlockHeight ?? 0) ? n : max
+    ).nodeId;
+  }, [apiNodes]);
+
   // Update nodes and edges when data changes
   useEffect(() => {
     if (initialNodes.length > 0) {
@@ -473,6 +563,7 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
   }, [selectNode, onNodeSelect]);
 
   // Style edges - cyberpunk aesthetic with teal highlights and energy animation
+  // Edge thickness based on connection bandwidth/latency
   const styledEdges = useMemo((): Edge[] => {
     return edges.map((edge: Edge) => {
       const isConnectedToSelected = Boolean(
@@ -482,27 +573,52 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
 
       // Check if this is a bridge edge (single point of failure)
       const [src, tgt] = [edge.source, edge.target].sort();
-      const isBridge = bridgeEdgeKeys.has(`${src}-${tgt}`);
+      const edgeKey = `${src}-${tgt}`;
+      const isBridge = bridgeEdgeKeys.has(edgeKey);
+
+      // Check if this edge is part of active propagation
+      const isPropagationActive = isPropagating && propagationActiveEdges.has(edgeKey);
+
+      // Calculate edge weight from source and target node data
+      const sourceData = nodeWeightData.get(edge.source) ?? { averagePing: null, bandwidth: null };
+      const targetData = nodeWeightData.get(edge.target) ?? { averagePing: null, bandwidth: null };
+      const edgeWeight = calculateEdgeWeight(sourceData, targetData);
+      const strokeWidth = getEdgeStrokeWidth(edgeWeight.bandwidth);
+
+      // Propagation animation takes priority
+      if (isPropagationActive) {
+        return {
+          ...edge,
+          className: 'propagation-active',
+          style: {
+            stroke: propagationColor || 'var(--bb-cyan)',
+            strokeWidth: Math.max(strokeWidth, 3),
+            opacity: 1,
+          },
+          animated: true,
+          interactionWidth: 1,
+        };
+      }
 
       // For connected edges, let CSS handle styling via energy-active class
       // For bridge edges, use red dashed stroke
-      // For non-connected edges, apply inline styles
+      // For non-connected edges, apply inline styles with bandwidth-based width
       return {
         ...edge,
         className: isConnectedToSelected ? 'energy-active' : (isBridge ? 'bridge-edge' : ''),
         style: isConnectedToSelected
-          ? { opacity: 1 }  // Let CSS animation handle the rest
+          ? { opacity: 1, strokeWidth: Math.max(strokeWidth, 2) }  // CSS animation + weight
           : isBridge
             ? {
                 stroke: 'rgba(255, 68, 68, 0.7)',
-                strokeWidth: 2,
+                strokeWidth: Math.max(strokeWidth, 2),
                 strokeDasharray: '5,3',
-                opacity: selectedNodeId ? 0.3 : 0.8,
+                opacity: selectedNodeId || isPropagating ? 0.3 : 0.8,
               }
             : {
                 stroke: 'rgba(100, 116, 139, 0.5)',
-                strokeWidth: 1,
-                opacity: selectedNodeId ? 0.15 : 0.5,
+                strokeWidth,
+                opacity: selectedNodeId || isPropagating ? 0.15 : 0.5,
               },
         animated: false,
         // Reduce interaction width to minimize cursor capture area
@@ -510,7 +626,7 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
         interactionWidth: isConnectedToSelected ? 10 : 1,
       };
     });
-  }, [edges, selectedNodeId, bridgeEdgeKeys]);
+  }, [edges, selectedNodeId, bridgeEdgeKeys, nodeWeightData, isPropagating, propagationActiveEdges, propagationColor]);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -521,23 +637,39 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
       {/* Topology Analysis Bar - overlays top of canvas */}
       <TopologyAnalysisBar />
       <ReactFlow
-        nodes={nodes.map((n) => ({
-          ...n,
-          selected: n.id === selectedNodeId,
-          data: {
-            ...n.data,
-            isConnectedPeer: !!(selectedNodeId && selectedPeerIds.has(n.id) && n.id !== selectedNodeId),
-            isCritical: criticalNodeIds.has(n.id),
-          },
-          style: {
-            opacity: selectedNodeId
-              ? n.id === selectedNodeId || selectedPeerIds.has(n.id)
-                ? 1
-                : 0.2
-              : 1,
-            transition: 'opacity 0.3s ease',
-          },
-        }))}
+        nodes={nodes.map((n) => {
+          const isActiveInPropagation = isPropagating && propagationActiveNodes.has(n.id);
+          const passesFilter = filteredNodeIds.has(n.id);
+
+          // Calculate opacity based on filter, propagation, and selection states
+          let opacity = 1;
+          if (!passesFilter) {
+            // Filtered out - very dim
+            opacity = 0.08;
+          } else if (isPropagating) {
+            opacity = isActiveInPropagation ? 1 : 0.15;
+          } else if (selectedNodeId) {
+            opacity = n.id === selectedNodeId || selectedPeerIds.has(n.id) ? 1 : 0.2;
+          }
+
+          return {
+            ...n,
+            selected: n.id === selectedNodeId,
+            data: {
+              ...n.data,
+              isConnectedPeer: !!(selectedNodeId && selectedPeerIds.has(n.id) && n.id !== selectedNodeId),
+              isCritical: criticalNodeIds.has(n.id),
+            },
+            style: {
+              opacity,
+              transition: 'opacity 0.3s ease',
+              // Add glow effect for propagation-active nodes
+              filter: isActiveInPropagation ? `drop-shadow(0 0 8px ${propagationColor || 'var(--bb-cyan)'})` : undefined,
+              // Disable interaction for filtered-out nodes
+              pointerEvents: passesFilter ? 'auto' : 'none',
+            },
+          };
+        })}
         edges={styledEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
@@ -577,7 +709,33 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
         >
           {isMuted ? '🔇' : '🔊'}
         </button>
+        {/* Block Propagation Animation Button */}
+        <button
+          onClick={() => {
+            if (isPropagating) {
+              stopPropagation();
+            } else if (propagationOrigin) {
+              startPropagation(propagationOrigin);
+            }
+          }}
+          disabled={!propagationOrigin && !isPropagating}
+          className={cn(
+            'absolute z-10 px-2 py-1 text-[10px] font-mono font-bold tracking-wider rounded transition-all',
+            isPropagating
+              ? 'bg-[var(--bb-cyan)] text-[var(--bb-black)] animate-pulse'
+              : 'bg-[var(--bb-black)] text-[var(--bb-cyan)] border border-[var(--bb-cyan)]/50 hover:bg-[var(--bb-cyan)]/20',
+            !propagationOrigin && !isPropagating && 'opacity-30 cursor-not-allowed'
+          )}
+          style={{
+            bottom: 5,
+            left: 70,
+          }}
+          title={isPropagating ? 'Stop propagation animation' : 'Simulate block propagation'}
+        >
+          {isPropagating ? '⏹ STOP' : '▶ PROPAGATE'}
+        </button>
         <TierLabels tierLabels={tierLabels} tierSeparators={tierSeparators} disconnectedSection={disconnectedSection} />
+        <NodeFilterPanel />
       </ReactFlow>
     </div>
   );
