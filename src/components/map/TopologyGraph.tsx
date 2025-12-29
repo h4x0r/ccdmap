@@ -219,26 +219,27 @@ function TierLabels({ tierLabels, tierSeparators, disconnectedSection }: TierLab
     >
       {/* Centrality Spectrum Header */}
       <div
-        className="absolute font-mono text-center"
+        className="absolute font-mono"
         style={{
           left: 60,
-          top: 15,
-          right: disconnectedSection ? disconnectedSection.x + 20 : 100,
-          fontSize: `${Math.max(9, fontSize)}px`,
+          top: 25,
+          width: disconnectedSection ? disconnectedSection.x - 80 : 1100,
+          fontSize: `${Math.max(10, fontSize + 1)}px`,
           pointerEvents: 'none',
         }}
       >
-        <div className="flex justify-between items-center px-4">
-          <span style={{ color: 'var(--bb-cyan)', opacity: 0.8 }}>HIGH CENTRALITY</span>
-          <span style={{ color: 'var(--bb-gray)', opacity: 0.5 }}>← BETWEENNESS CENTRALITY →</span>
-          <span style={{ color: 'var(--bb-amber)', opacity: 0.8 }}>LOW CENTRALITY</span>
+        <div className="flex justify-between items-center">
+          <span style={{ color: 'var(--bb-cyan)', opacity: 0.9, fontWeight: 'bold' }}>◀ HIGH</span>
+          <span style={{ color: 'var(--bb-gray)', opacity: 0.6 }}>BETWEENNESS CENTRALITY</span>
+          <span style={{ color: 'var(--bb-amber)', opacity: 0.9, fontWeight: 'bold' }}>LOW ▶</span>
         </div>
         <div
           style={{
-            height: 2,
-            marginTop: 4,
+            height: 3,
+            marginTop: 6,
             background: 'linear-gradient(90deg, var(--bb-cyan), var(--bb-gray) 50%, var(--bb-amber))',
-            opacity: 0.4,
+            opacity: 0.5,
+            borderRadius: 2,
           }}
         />
       </div>
