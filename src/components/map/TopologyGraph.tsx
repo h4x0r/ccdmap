@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -8,9 +8,11 @@ import {
   useNodesState,
   useEdgesState,
   useReactFlow,
+  useOnViewportChange,
   type Node,
   type Edge,
   type NodeProps,
+  type Viewport,
   Handle,
   Position,
 } from '@xyflow/react';
@@ -195,7 +197,12 @@ interface TierLabelsProps {
  */
 function TierLabels({ tierLabels, tierSeparators, disconnectedSection }: TierLabelsProps) {
   const { getViewport } = useReactFlow();
-  const viewport = getViewport();
+  const [viewport, setViewport] = useState<Viewport>(getViewport());
+
+  // Subscribe to viewport changes for smooth updates during zoom/pan
+  useOnViewportChange({
+    onChange: (newViewport) => setViewport(newViewport),
+  });
 
   // Scale font size inversely with zoom to keep labels readable
   const fontSize = Math.max(8, Math.min(12, 10 / viewport.zoom));
