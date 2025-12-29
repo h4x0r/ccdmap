@@ -20,11 +20,12 @@ import { useNodes } from '@/hooks/useNodes';
 import { useAppStore } from '@/hooks/useAppStore';
 import { useAudio } from '@/hooks/useAudio';
 import { toReactFlowNodes, toReactFlowEdges, type ConcordiumNodeData, type ConcordiumNode } from '@/lib/transforms';
-import { getLayoutedElements, type TierLabelInfo } from '@/lib/layout';
+import { getGridLayoutedElements, type TierLabelInfo, type ColumnLabelInfo } from '@/lib/layout';
 import {
   buildAdjacencyList,
   identifyBottlenecks,
   identifyBridges,
+  calculateBetweennessCentrality,
   type GraphNode,
   type GraphEdge,
 } from '@/lib/topology-analysis';
@@ -118,12 +119,9 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
               )}
               {isCritical && (
                 <div
-                  className="absolute -top-1 -left-1 w-3 h-3 flex items-center justify-center text-[8px] font-bold text-amber-900 bg-amber-500 border border-background shadow-[0_0_8px_rgba(251,191,36,0.6)]"
-                  style={{ transform: 'rotate(45deg)' }}
+                  className="critical-star"
                   title="Critical node (network bottleneck)"
-                >
-                  <span style={{ transform: 'rotate(-45deg)' }}>!</span>
-                </div>
+                />
               )}
             </div>
           </div>
@@ -188,13 +186,14 @@ const TIER_COLORS: Record<string, { color: string; opacity: number; separatorOpa
 interface TierLabelsProps {
   tierLabels: TierLabelInfo[];
   tierSeparators: { y: number }[];
+  columnLabels: ColumnLabelInfo[];
 }
 
 /**
- * Renders tier labels that follow the viewport zoom/pan
+ * Renders tier labels and column labels that follow the viewport zoom/pan
  * Must be rendered inside ReactFlowProvider context
  */
-function TierLabels({ tierLabels, tierSeparators }: TierLabelsProps) {
+function TierLabels({ tierLabels, tierSeparators, columnLabels }: TierLabelsProps) {
   const { getViewport } = useReactFlow();
   const viewport = getViewport();
 
@@ -211,6 +210,44 @@ function TierLabels({ tierLabels, tierSeparators }: TierLabelsProps) {
         zIndex: 0,
       }}
     >
+      {/* Column Labels - positioned at top */}
+      {columnLabels.map(({ column, label, x }) => (
+        <div
+          key={column}
+          className="absolute font-mono font-bold tracking-wider text-center"
+          style={{
+            left: x - 50,
+            top: 40,
+            width: 100,
+            color: column === 3 ? 'var(--bb-cyan)' : 'var(--bb-gray)',
+            opacity: column === 3 ? 0.7 : 0.4,
+            fontSize: `${fontSize}px`,
+            pointerEvents: 'none',
+          }}
+        >
+          {label}
+        </div>
+      ))}
+
+      {/* Vertical column separator lines */}
+      {columnLabels.map(({ column, x }) => (
+        <div
+          key={`sep-${column}`}
+          className="absolute"
+          style={{
+            left: x - 60,
+            top: 60,
+            width: 1,
+            height: 600,
+            background: column === 3
+              ? 'linear-gradient(to bottom, var(--bb-cyan), transparent)'
+              : 'linear-gradient(to bottom, rgba(100, 116, 139, 0.2), transparent)',
+            opacity: column === 3 ? 0.3 : 0.15,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
       {/* Tier Labels - positioned in graph coordinates */}
       {tierLabels.map(({ tier, y }) => {
         const colors = TIER_COLORS[tier] || TIER_COLORS['STANDARD'];
@@ -298,8 +335,8 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
   const { selectedNodeId, selectNode } = useAppStore();
   const { playAcquisitionSequence, isMuted, toggleMute } = useAudio();
 
-  const { initialNodes, initialEdges, tierLabels, tierSeparators, criticalNodeIds, bridgeEdgeKeys } = useMemo(() => {
-    if (!apiNodes) return { initialNodes: [], initialEdges: [], tierLabels: [], tierSeparators: [], criticalNodeIds: new Set<string>(), bridgeEdgeKeys: new Set<string>() };
+  const { initialNodes, initialEdges, tierLabels, tierSeparators, columnLabels, criticalNodeIds, bridgeEdgeKeys } = useMemo(() => {
+    if (!apiNodes) return { initialNodes: [], initialEdges: [], tierLabels: [], tierSeparators: [], columnLabels: [], criticalNodeIds: new Set<string>(), bridgeEdgeKeys: new Set<string>() };
 
     const rawNodes = toReactFlowNodes(apiNodes);
     const rawEdges = toReactFlowEdges(apiNodes);
@@ -325,6 +362,18 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
     const bottlenecks = identifyBottlenecks(adj, 5); // Top 5 critical nodes
     const bridges = identifyBridges(adj);
 
+    // Calculate betweenness centrality for grid layout positioning
+    const centralityMap = calculateBetweennessCentrality(adj);
+
+    // Inject centrality into node data
+    const nodesWithCentrality = rawNodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        centrality: centralityMap.get(node.id) ?? 0,
+      },
+    }));
+
     // Create sets for fast lookup
     const criticalIds = new Set(bottlenecks);
     const bridgeKeys = new Set(bridges.map(([a, b]) => {
@@ -332,9 +381,9 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
       return `${src}-${tgt}`;
     }));
 
-    // Apply tiered "Mission Control" layout
-    const { nodes: layoutedNodes, edges: layoutedEdges, tierLabels: labels, tierSeparators: separators } = getLayoutedElements(
-      rawNodes,
+    // Apply centrality-based grid layout
+    const { nodes: layoutedNodes, edges: layoutedEdges, tierLabels: labels, tierSeparators: separators, columnLabels: columns } = getGridLayoutedElements(
+      nodesWithCentrality,
       rawEdges,
       { width: 1400, height: 900 }
     );
@@ -344,6 +393,7 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
       initialEdges: layoutedEdges,
       tierLabels: labels,
       tierSeparators: separators,
+      columnLabels: columns,
       criticalNodeIds: criticalIds,
       bridgeEdgeKeys: bridgeKeys,
     };
@@ -491,7 +541,7 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
         >
           {isMuted ? '🔇' : '🔊'}
         </button>
-        <TierLabels tierLabels={tierLabels} tierSeparators={tierSeparators} />
+        <TierLabels tierLabels={tierLabels} tierSeparators={tierSeparators} columnLabels={columnLabels} />
       </ReactFlow>
     </div>
   );

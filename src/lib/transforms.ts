@@ -91,6 +91,8 @@ export interface ConcordiumNodeData extends Record<string, unknown> {
   tier?: NodeTier;
   /** True if this node is a network bottleneck (high betweenness centrality) */
   isCritical?: boolean;
+  /** Betweenness centrality score (0.0 to 1.0) for grid layout positioning */
+  centrality?: number;
 }
 
 export function calculateNodeHealth(node: ConcordiumNode, maxHeight: number): NodeHealth {

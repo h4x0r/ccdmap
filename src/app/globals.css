@@ -3363,6 +3363,60 @@
   border-left-color: var(--bb-cyan);
 }
 
+/* Critical Node Star Badge */
+.critical-star {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  box-shadow:
+    0 0 8px rgba(255, 215, 0, 0.8),
+    0 0 16px rgba(255, 215, 0, 0.5);
+  animation: critical-pulse 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+.critical-star::after {
+  content: '!';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  font-weight: 900;
+  color: #8B4513;
+  text-shadow: none;
+}
+
+@keyframes critical-pulse {
+  0%, 100% {
+    opacity: 0.85;
+    box-shadow:
+      0 0 8px rgba(255, 215, 0, 0.8),
+      0 0 16px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    opacity: 1;
+    box-shadow:
+      0 0 12px rgba(255, 215, 0, 1),
+      0 0 24px rgba(255, 215, 0, 0.7);
+  }
+}
+
 /* Degree Distribution Dropdown */
 .topo-degree-bar-wrapper {
   position: relative;
