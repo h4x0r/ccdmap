@@ -452,28 +452,38 @@ export function getForceDirectedTierLayout(
   }
 
   // Run force simulation iterations
-  const iterations = 150;
-  const repulsionStrength = 800;
-  const attractionStrength = 0.3;
-  const damping = 0.9;
+  // Much stronger repulsion to prevent overlap
+  const iterations = 300;
+  const minNodeSpacing = 80; // Minimum pixels between node centers
+  const repulsionStrength = 5000;
+  const attractionStrength = 0.05; // Reduced - only subtle clustering
+  const damping = 0.85;
 
   for (let iter = 0; iter < iterations; iter++) {
     // Calculate forces
     for (let i = 0; i < simNodes.length; i++) {
       let fx = 0;
 
-      // Repulsion from other nodes in same tier
+      // Strong repulsion from other nodes in same tier
       for (let j = 0; j < simNodes.length; j++) {
         if (i === j) continue;
         if (simNodes[i].tier !== simNodes[j].tier) continue;
 
         const dx = simNodes[i].x - simNodes[j].x;
-        const dist = Math.abs(dx) + 1; // Avoid division by zero
-        const force = repulsionStrength / (dist * dist);
-        fx += Math.sign(dx) * force;
+        const dist = Math.abs(dx);
+
+        // Very strong repulsion when closer than minimum spacing
+        if (dist < minNodeSpacing) {
+          const overlap = minNodeSpacing - dist;
+          fx += Math.sign(dx || 1) * overlap * 2; // Strong push apart
+        } else {
+          // Normal inverse-square repulsion
+          const force = repulsionStrength / (dist * dist);
+          fx += Math.sign(dx) * force;
+        }
       }
 
-      // Attraction to nodes with shared peers
+      // Weak attraction to nodes with shared peers (subtle clustering)
       const myPeers = nodePeers.get(simNodes[i].id) || new Set();
       for (let j = 0; j < simNodes.length; j++) {
         if (i === j) continue;
@@ -487,17 +497,26 @@ export function getForceDirectedTierLayout(
 
         if (sharedCount > 0) {
           const dx = simNodes[j].x - simNodes[i].x;
-          fx += dx * attractionStrength * Math.min(sharedCount / 5, 1);
+          // Only attract if already far enough apart
+          if (Math.abs(dx) > minNodeSpacing * 1.5) {
+            fx += dx * attractionStrength * Math.min(sharedCount / 10, 1);
+          }
         }
       }
 
-      // Boundary forces
-      if (simNodes[i].x < padding) {
-        fx += (padding - simNodes[i].x) * 0.5;
+      // Boundary forces - push away from edges
+      if (simNodes[i].x < padding + 50) {
+        fx += (padding + 50 - simNodes[i].x) * 0.8;
       }
-      if (simNodes[i].x > mainSectionWidth - padding) {
-        fx += (mainSectionWidth - padding - simNodes[i].x) * 0.5;
+      if (simNodes[i].x > mainSectionWidth - padding - 50) {
+        fx += (mainSectionWidth - padding - 50 - simNodes[i].x) * 0.8;
       }
+
+      // Center attraction to spread nodes across width
+      const centerX = mainSectionWidth / 2;
+      const distFromCenter = simNodes[i].x - centerX;
+      // Slight push away from center to use full width
+      fx += Math.sign(distFromCenter) * 0.5;
 
       simNodes[i].vx = (simNodes[i].vx + fx * 0.1) * damping;
     }
@@ -507,6 +526,24 @@ export function getForceDirectedTierLayout(
       node.x += node.vx;
       // Clamp to bounds
       node.x = Math.max(padding, Math.min(mainSectionWidth - padding, node.x));
+    }
+
+    // Post-iteration: enforce minimum spacing by direct adjustment
+    if (iter % 10 === 0) {
+      for (const tier of tierOrder) {
+        const tierNodes = simNodes.filter(n => n.tier === tier);
+        tierNodes.sort((a, b) => a.x - b.x);
+
+        // Push overlapping nodes apart
+        for (let i = 1; i < tierNodes.length; i++) {
+          const gap = tierNodes[i].x - tierNodes[i - 1].x;
+          if (gap < minNodeSpacing) {
+            const push = (minNodeSpacing - gap) / 2;
+            tierNodes[i - 1].x -= push;
+            tierNodes[i].x += push;
+          }
+        }
+      }
     }
   }
 
