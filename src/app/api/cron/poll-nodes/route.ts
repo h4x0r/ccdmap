@@ -6,6 +6,9 @@ import { ConcordiumClient } from '@/lib/concordium-client';
 import { calculateNetworkPulse } from '@/lib/pulse';
 import type { HealthStatus } from '@/lib/db/schema';
 
+// Allow longer execution time for validator fetching (Pro plan: up to 300s)
+export const maxDuration = 120; // 2 minutes
+
 // Concordium dashboard API
 const NODES_SUMMARY_URL = 'https://dashboard.mainnet.concordium.software/nodesSummary';
 
