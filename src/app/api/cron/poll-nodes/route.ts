@@ -20,6 +20,10 @@ const GRPC_ENDPOINTS = [
 // Secret to protect the cron endpoint (set in Vercel env)
 const CRON_SECRET = process.env.CRON_SECRET;
 
+// Feature flags to skip slow gRPC operations (for debugging timeouts)
+const SKIP_VALIDATORS = process.env.SKIP_VALIDATORS === 'true';
+const SKIP_GRPC_PEERS = process.env.SKIP_GRPC_PEERS === 'true';
+
 /**
  * Fetch nodes from the Concordium dashboard API
  */
@@ -85,21 +89,26 @@ async function processPollJob(verbose: boolean = false) {
   await pollService.processReportingNodes(nodes);
 
   // Poll gRPC endpoints for peer data (IPs, network stats)
+  // Can be skipped via SKIP_GRPC_PEERS=true env var for debugging timeouts
   let grpcPeersTotal = 0;
   const grpcErrors: string[] = [];
 
-  for (const endpoint of GRPC_ENDPOINTS) {
-    try {
-      const client = new ConcordiumClient(endpoint.host, endpoint.port);
-      const peers = await client.getPeersInfo();
-      if (peers.length > 0) {
-        await pollService.processGrpcPeers(peers, `grpc:${endpoint.host}`);
-        grpcPeersTotal += peers.length;
+  if (SKIP_GRPC_PEERS) {
+    grpcErrors.push('Skipped: SKIP_GRPC_PEERS=true');
+  } else {
+    for (const endpoint of GRPC_ENDPOINTS) {
+      try {
+        const client = new ConcordiumClient(endpoint.host, endpoint.port);
+        const peers = await client.getPeersInfo();
+        if (peers.length > 0) {
+          await pollService.processGrpcPeers(peers, `grpc:${endpoint.host}`);
+          grpcPeersTotal += peers.length;
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        grpcErrors.push(`${endpoint.host}: ${msg}`);
+        console.warn(`gRPC poll failed for ${endpoint.host}:`, error);
       }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      grpcErrors.push(`${endpoint.host}: ${msg}`);
-      console.warn(`gRPC poll failed for ${endpoint.host}:`, error);
     }
   }
 
@@ -110,7 +119,18 @@ async function processPollJob(verbose: boolean = false) {
   const inferenceStats = await pollService.runInference();
 
   // Process validators (fetch from chain, link to reporting peers)
-  const validatorStats = await pollService.processValidators(nodes);
+  // Can be skipped via SKIP_VALIDATORS=true env var for debugging timeouts
+  const validatorStats = SKIP_VALIDATORS
+    ? {
+        totalValidators: 0,
+        visibleValidators: 0,
+        phantomValidators: 0,
+        newValidators: 0,
+        stakeVisibilityPct: 0,
+        quorumHealth: 'critical' as const,
+        fetchErrors: ['Skipped: SKIP_VALIDATORS=true'],
+      }
+    : await pollService.processValidators(nodes);
 
   // Calculate network-wide metrics
   const now = Date.now();
