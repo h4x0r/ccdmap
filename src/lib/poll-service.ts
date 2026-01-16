@@ -206,15 +206,22 @@ export class PollService {
   }
 
   /**
-   * Process validators from chain data.
+   * Process validators from chain data with timeout protection.
    * Fetches all bakers from gRPC and links to reporting peers.
+   * Times out after 30 seconds to prevent blocking the cron job.
    */
   async processValidators(reportingNodes: NodeSummary[]): Promise<ValidatorPollStats> {
     const errors: string[] = [];
+    const VALIDATOR_TIMEOUT_MS = 30000; // 30 second timeout
 
     try {
-      // Fetch all validators from chain
-      const fetchResult: FetchResult = await this.validatorFetcher.fetchAllValidators();
+      // Fetch all validators from chain with timeout
+      const fetchPromise = this.validatorFetcher.fetchAllValidators();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Validator fetch timed out after 30s')), VALIDATOR_TIMEOUT_MS)
+      );
+
+      const fetchResult: FetchResult = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (fetchResult.errors.length > 0) {
         errors.push(...fetchResult.errors);
