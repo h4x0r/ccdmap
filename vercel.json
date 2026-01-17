@@ -8,7 +8,7 @@
   },
   "crons": [
     {
-      "path": "/api/cron/poll-nodes",
+      "path": "/api/cron/poll-nodes-simple",
       "schedule": "*/5 * * * *"
     }
   ]
