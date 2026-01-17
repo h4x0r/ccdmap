@@ -6,9 +6,8 @@ import { ConcordiumClient } from '@/lib/concordium-client';
 import { calculateNetworkPulse } from '@/lib/pulse';
 import type { HealthStatus } from '@/lib/db/schema';
 
-// Fluid Compute (Pro plan): up to 800s max
-// Setting to 300s to test if Fluid Compute is actually applying
-// If still times out at 60s, Fluid Compute isn't working
+// Fluid Compute (Pro plan): 300s default, 800s max
+// Requires Dashboard toggle ON + redeploy to take effect
 export const maxDuration = 300;
 
 // Force Node.js runtime (not Edge) for gRPC support
