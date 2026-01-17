@@ -128,7 +128,10 @@ export const SCHEMA = {
       catchup_status TEXT,
       grpc_latency_ms INTEGER,
       packets_sent INTEGER,
-      packets_received INTEGER
+      packets_received INTEGER,
+
+      -- Validator linkage (baker ID if this peer is a validator)
+      consensus_baker_id INTEGER
     )
   `,
 

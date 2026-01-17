@@ -53,6 +53,20 @@ export async function initializeSchema(): Promise<void> {
   for (const indexSql of SCHEMA.indexes) {
     await db.execute(indexSql);
   }
+
+  // Migrations: add columns to existing tables (idempotent)
+  // SQLite doesn't support IF NOT EXISTS for ADD COLUMN, so catch errors
+  const migrations = [
+    'ALTER TABLE peers ADD COLUMN consensus_baker_id INTEGER',
+  ];
+
+  for (const migration of migrations) {
+    try {
+      await db.execute(migration);
+    } catch {
+      // Column already exists, ignore
+    }
+  }
 }
 
 /**
