@@ -401,6 +401,55 @@ function TierLabels({ tierLabels, tierSeparators, disconnectedSection }: TierLab
   );
 }
 
+/**
+ * Handles auto-fit on viewport resize and provides a manual fit button
+ * Must be rendered inside ReactFlowProvider context
+ */
+function AutoFitHandler() {
+  const { fitView } = useReactFlow();
+  const [isAutoFitting, setIsAutoFitting] = useState(false);
+
+  // Auto-fit on window resize with debounce
+  useEffect(() => {
+    let resizeTimer: NodeJS.Timeout;
+
+    const handleResize = () => {
+      setIsAutoFitting(true);
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        fitView({ padding: 0.1, duration: 300 });
+        setIsAutoFitting(false);
+      }, 150);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
+    };
+  }, [fitView]);
+
+  const handleFitClick = useCallback(() => {
+    fitView({ padding: 0.1, duration: 400 });
+  }, [fitView]);
+
+  return (
+    <button
+      onClick={handleFitClick}
+      className="absolute z-10 w-[26px] h-[26px] flex items-center justify-center text-xs font-mono transition-all hover:opacity-100 bg-[var(--bb-black)] border border-[var(--bb-border)] text-[var(--bb-gray)] hover:bg-[var(--bb-orange)] hover:text-[var(--bb-black)] hover:border-[var(--bb-orange)]"
+      style={{
+        bottom: 56,
+        left: 20,
+        opacity: isAutoFitting ? 0.5 : 0.8,
+        borderRadius: 3,
+      }}
+      title="Fit to View (reset zoom/pan)"
+    >
+      ⊡
+    </button>
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="w-full h-full flex items-center justify-center">
@@ -746,6 +795,7 @@ export function TopologyGraph({ onNodeSelect }: TopologyGraphProps = {}) {
           {isMuted ? '🔇' : '🔊'}
         </button>
         <TierLabels tierLabels={tierLabels} tierSeparators={tierSeparators} disconnectedSection={disconnectedSection} />
+        <AutoFitHandler />
         <NodeFilterPanel />
       </ReactFlow>
     </div>
