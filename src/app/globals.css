@@ -3883,6 +3883,12 @@
   gap: 8px;
 }
 
+.vip-identicon {
+  flex-shrink: 0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
 .vip-copy-btn {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.2);

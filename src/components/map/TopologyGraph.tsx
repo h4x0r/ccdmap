@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { calculateEdgeWeight, getEdgeStrokeWidth, type EdgeWeightData } from '@/lib/edge-weights';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AddressIdenticon } from '@/components/ui/AddressIdenticon';
 import {
   Tooltip,
   TooltipContent,
@@ -217,7 +218,10 @@ function PhantomNodeComponent({ data }: NodeProps) {
             <div className="font-mono text-[10px] text-[var(--bb-gray)]">
               Baker #{phantom.bakerId}
             </div>
-            <div className="font-mono text-[10px] text-[var(--bb-gray)] truncate max-w-[200px]">
+            <div className="font-mono text-[10px] text-[var(--bb-gray)] truncate max-w-[200px] flex items-center gap-1">
+              {phantom.accountAddress && (
+                <AddressIdenticon address={phantom.accountAddress} diameter={12} />
+              )}
               {phantom.accountAddress}
             </div>
             <div className="flex gap-2 flex-wrap pt-1">

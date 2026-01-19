@@ -17,6 +17,7 @@ import {
   getVisibilityColorClass,
   getHealthColorClass,
 } from '@/hooks/useValidators';
+import { AddressIdenticon } from '@/components/ui/AddressIdenticon';
 
 export interface ValidatorInvestigationPanelProps {
   isOpen: boolean;
@@ -143,6 +144,13 @@ export function ValidatorInvestigationPanel({
                     <tr key={validator.bakerId}>
                       <td className="vip-baker-id">{validator.bakerId}</td>
                       <td className="vip-address">
+                        {validator.accountAddress && (
+                          <AddressIdenticon
+                            address={validator.accountAddress}
+                            diameter={16}
+                            className="vip-identicon"
+                          />
+                        )}
                         <span title={validator.accountAddress}>
                           {truncateAddress(validator.accountAddress)}
                         </span>
