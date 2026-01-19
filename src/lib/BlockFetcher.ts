@@ -11,9 +11,8 @@ export interface BlockFetcherOptions {
   timeout?: number;
 }
 
-export interface ExtendedBlockInfo extends BlockInfo {
-  transactionCount: number;
-}
+// ExtendedBlockInfo is now just BlockInfo since transactionCount is included
+export type ExtendedBlockInfo = BlockInfo;
 
 export interface FetchBlocksResult {
   blocks: ExtendedBlockInfo[];

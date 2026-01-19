@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const mockGetLatestBlockHeight = vi.fn();
 const mockProcessBlocks = vi.fn();
 const mockRecalculateBlockCounts = vi.fn();
+const mockRecalculateTransactionCounts = vi.fn();
 const mockFetchBlocksSince = vi.fn();
 const mockFetcherGetLatestBlockHeight = vi.fn();
 
@@ -30,6 +31,7 @@ vi.mock('@/lib/db/BlockTracker', () => {
       getLatestBlockHeight = mockGetLatestBlockHeight;
       processBlocks = mockProcessBlocks;
       recalculateBlockCounts = mockRecalculateBlockCounts;
+      recalculateTransactionCounts = mockRecalculateTransactionCounts;
     },
   };
 });
@@ -77,6 +79,7 @@ describe('/api/cron/poll-blocks', () => {
       skippedDuplicates: 0,
     });
     mockRecalculateBlockCounts.mockResolvedValue(undefined);
+    mockRecalculateTransactionCounts.mockResolvedValue(undefined);
 
     mockFetchBlocksSince.mockResolvedValue({
       blocks: Array.from({ length: 10 }, (_, i) => ({
@@ -115,6 +118,7 @@ describe('/api/cron/poll-blocks', () => {
       skippedDuplicates: 0,
     });
     mockRecalculateBlockCounts.mockResolvedValue(undefined);
+    mockRecalculateTransactionCounts.mockResolvedValue(undefined);
 
     mockFetchBlocksSince.mockResolvedValue({
       blocks: [],
@@ -144,6 +148,7 @@ describe('/api/cron/poll-blocks', () => {
       skippedDuplicates: 0,
     });
     mockRecalculateBlockCounts.mockResolvedValue(undefined);
+    mockRecalculateTransactionCounts.mockResolvedValue(undefined);
 
     mockFetcherGetLatestBlockHeight.mockResolvedValue(15000000); // Current chain height
     mockFetchBlocksSince.mockResolvedValue({

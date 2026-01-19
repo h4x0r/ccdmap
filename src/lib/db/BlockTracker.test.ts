@@ -40,13 +40,15 @@ describe('BlockTracker', () => {
   function createMockBlockInfo(
     height: number,
     bakerId: number,
-    timestamp: number = Date.now()
+    timestamp: number = Date.now(),
+    transactionCount: number = 0
   ): BlockInfo {
     return {
       height,
       bakerId,
       timestamp,
       hash: `block-${height}-${bakerId}`,
+      transactionCount,
     };
   }
 
@@ -318,6 +320,101 @@ describe('BlockTracker', () => {
       const latest = await blockTracker.getLatestBlockHeight();
 
       expect(latest).toBeNull();
+    });
+  });
+
+  describe('transaction tracking', () => {
+    it('records transaction counts per block', async () => {
+      await validatorTracker.processValidators([
+        createMockChainValidator({ bakerId: 1 }),
+      ], []);
+
+      const blocks: BlockInfo[] = [
+        createMockBlockInfo(1000, 1, Date.now(), 5),
+        createMockBlockInfo(1001, 1, Date.now(), 10),
+      ];
+
+      await blockTracker.processBlocks(blocks);
+
+      // Verify transaction counts stored in blocks table
+      const result = await db.execute('SELECT height, transaction_count FROM blocks ORDER BY height');
+      expect(result.rows[0].transaction_count).toBe(5);
+      expect(result.rows[1].transaction_count).toBe(10);
+    });
+
+    it('updates validator transaction counts on processBlocks', async () => {
+      await validatorTracker.processValidators([
+        createMockChainValidator({ bakerId: 1 }),
+        createMockChainValidator({ bakerId: 2 }),
+      ], []);
+
+      const now = Date.now();
+      const blocks: BlockInfo[] = [
+        createMockBlockInfo(1000, 1, now - 1000, 5),  // Baker 1: 5 txs
+        createMockBlockInfo(1001, 1, now - 2000, 10), // Baker 1: 10 txs
+        createMockBlockInfo(1002, 2, now - 3000, 3),  // Baker 2: 3 txs
+      ];
+
+      await blockTracker.processBlocks(blocks);
+
+      // Verify validator transaction counts updated
+      const v1 = await db.execute('SELECT transactions_24h FROM validators WHERE baker_id = 1');
+      expect(v1.rows[0].transactions_24h).toBe(15); // 5 + 10
+
+      const v2 = await db.execute('SELECT transactions_24h FROM validators WHERE baker_id = 2');
+      expect(v2.rows[0].transactions_24h).toBe(3);
+    });
+
+    it('recalculates transactions_24h and transactions_7d', async () => {
+      await validatorTracker.processValidators([
+        createMockChainValidator({ bakerId: 1 }),
+        createMockChainValidator({ bakerId: 2 }),
+      ], []);
+
+      const now = Date.now();
+      const threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000;
+
+      const blocks: BlockInfo[] = [
+        // Recent blocks (within 24h)
+        createMockBlockInfo(1000, 1, now - 1000, 5),
+        createMockBlockInfo(1001, 1, now - 2000, 10),
+        // Older blocks (within 7d but not 24h)
+        createMockBlockInfo(1002, 1, threeDaysAgo, 20),
+        createMockBlockInfo(1003, 2, threeDaysAgo, 8),
+      ];
+
+      await blockTracker.processBlocks(blocks);
+      await blockTracker.recalculateTransactionCounts();
+
+      const v1 = await db.execute('SELECT transactions_24h, transactions_7d FROM validators WHERE baker_id = 1');
+      expect(v1.rows[0].transactions_24h).toBe(15); // 5 + 10 (recent)
+      expect(v1.rows[0].transactions_7d).toBe(35);  // 5 + 10 + 20 (all)
+
+      const v2 = await db.execute('SELECT transactions_24h, transactions_7d FROM validators WHERE baker_id = 2');
+      expect(v2.rows[0].transactions_24h).toBe(0);  // no recent
+      expect(v2.rows[0].transactions_7d).toBe(8);   // only 3-day old block
+    });
+
+    it('calculateBlockProductionStats includes transaction totals', async () => {
+      await validatorTracker.processValidators([
+        createMockChainValidator({ bakerId: 1 }),  // phantom
+        createMockChainValidator({ bakerId: 2 }),  // visible
+      ], [{ peerId: 'peer-2', consensusBakerId: 2, nodeName: 'Visible Baker' }]);
+
+      const now = Date.now();
+      const blocks: BlockInfo[] = [
+        createMockBlockInfo(1000, 1, now - 1000, 5),  // phantom: 5 txs
+        createMockBlockInfo(1001, 2, now - 2000, 10), // visible: 10 txs
+        createMockBlockInfo(1002, 1, now - 3000, 3),  // phantom: 3 txs
+      ];
+
+      await blockTracker.processBlocks(blocks);
+
+      const stats = await blockTracker.calculateBlockProductionStats(24 * 60 * 60 * 1000);
+
+      expect(stats.totalTransactions).toBe(18);
+      expect(stats.transactionsByVisible).toBe(10);
+      expect(stats.transactionsByPhantom).toBe(8);
     });
   });
 });

@@ -227,6 +227,8 @@ export const SCHEMA = {
       last_block_time INTEGER,
       blocks_24h INTEGER DEFAULT 0,
       blocks_7d INTEGER DEFAULT 0,
+      transactions_24h INTEGER DEFAULT 0,
+      transactions_7d INTEGER DEFAULT 0,
 
       -- Forensic tracking
       first_observed INTEGER NOT NULL,
@@ -296,7 +298,7 @@ export const SCHEMA = {
 
   /**
    * Blocks table - tracks block production for forensic analysis
-   * Records which baker produced each block
+   * Records which baker produced each block and transaction count
    */
   blocks: `
     CREATE TABLE IF NOT EXISTS blocks (
@@ -304,7 +306,8 @@ export const SCHEMA = {
       hash TEXT NOT NULL UNIQUE,
       baker_id INTEGER NOT NULL,
       timestamp INTEGER NOT NULL,
-      recorded_at INTEGER NOT NULL
+      recorded_at INTEGER NOT NULL,
+      transaction_count INTEGER DEFAULT 0
     )
   `,
 
@@ -566,6 +569,8 @@ export interface ValidatorRecord {
   last_block_time: number | null;
   blocks_24h: number;
   blocks_7d: number;
+  transactions_24h: number;
+  transactions_7d: number;
   first_observed: number;
   last_chain_update: number | null;
   state_transition_count: number;

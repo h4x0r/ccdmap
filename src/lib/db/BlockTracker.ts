@@ -12,6 +12,7 @@ export interface BlockInfo {
   bakerId: number;
   timestamp: number;
   hash: string;
+  transactionCount: number;
 }
 
 export interface ProcessBlocksResult {
@@ -27,6 +28,9 @@ export interface BlockProductionStats {
   blocksByPhantom: number;
   phantomBlockPct: number;
   timeWindowMs: number;
+  totalTransactions: number;
+  transactionsByVisible: number;
+  transactionsByPhantom: number;
 }
 
 export interface TopProducer {
@@ -68,11 +72,11 @@ export class BlockTracker {
         continue;
       }
 
-      // Record the block
+      // Record the block with transaction count
       await this.db.execute(
-        `INSERT INTO blocks (height, hash, baker_id, timestamp, recorded_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [block.height, block.hash, block.bakerId, block.timestamp, now]
+        `INSERT INTO blocks (height, hash, baker_id, timestamp, recorded_at, transaction_count)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [block.height, block.hash, block.bakerId, block.timestamp, now, block.transactionCount]
       );
 
       blocksProcessed++;
@@ -89,7 +93,7 @@ export class BlockTracker {
           unknownBakers.push(block.bakerId);
         }
       } else {
-        // Update validator's last block info and increment block count
+        // Update validator's last block info and increment block/transaction counts
         await this.db.execute(
           `UPDATE validators SET
             last_block_height = CASE
@@ -100,9 +104,10 @@ export class BlockTracker {
               WHEN last_block_time IS NULL OR ? > last_block_time THEN ?
               ELSE last_block_time
             END,
-            blocks_24h = blocks_24h + 1
+            blocks_24h = blocks_24h + 1,
+            transactions_24h = transactions_24h + ?
           WHERE baker_id = ?`,
-          [block.height, block.height, block.timestamp, block.timestamp, block.bakerId]
+          [block.height, block.height, block.timestamp, block.timestamp, block.transactionCount, block.bakerId]
         );
       }
     }
@@ -121,10 +126,11 @@ export class BlockTracker {
   async calculateBlockProductionStats(timeWindowMs: number): Promise<BlockProductionStats> {
     const cutoff = Date.now() - timeWindowMs;
 
-    // Get all blocks in the time window with validator source
+    // Get all blocks in the time window with validator source and transaction counts
     const result = await this.db.execute(
       `SELECT
         b.baker_id,
+        b.transaction_count,
         v.source
        FROM blocks b
        LEFT JOIN validators v ON b.baker_id = v.baker_id
@@ -135,16 +141,23 @@ export class BlockTracker {
     let totalBlocks = 0;
     let blocksByVisible = 0;
     let blocksByPhantom = 0;
+    let totalTransactions = 0;
+    let transactionsByVisible = 0;
+    let transactionsByPhantom = 0;
 
     for (const row of result.rows) {
       totalBlocks++;
       const source = row.source as string | null;
+      const txCount = Number(row.transaction_count ?? 0);
+      totalTransactions += txCount;
 
       if (source === 'reporting') {
         blocksByVisible++;
+        transactionsByVisible += txCount;
       } else {
         // chain_only or unknown (no validator record)
         blocksByPhantom++;
+        transactionsByPhantom += txCount;
       }
     }
 
@@ -158,6 +171,9 @@ export class BlockTracker {
       blocksByPhantom,
       phantomBlockPct,
       timeWindowMs,
+      totalTransactions,
+      transactionsByVisible,
+      transactionsByPhantom,
     };
   }
 
@@ -188,7 +204,7 @@ export class BlockTracker {
    */
   async getBlocksByBaker(bakerId: number): Promise<BlockInfo[]> {
     const result = await this.db.execute(
-      `SELECT height, hash, baker_id, timestamp
+      `SELECT height, hash, baker_id, timestamp, transaction_count
        FROM blocks
        WHERE baker_id = ?
        ORDER BY height DESC`,
@@ -200,6 +216,7 @@ export class BlockTracker {
       hash: row.hash as string,
       bakerId: row.baker_id as number,
       timestamp: row.timestamp as number,
+      transactionCount: Number(row.transaction_count ?? 0),
     }));
   }
 
@@ -253,6 +270,60 @@ export class BlockTracker {
       await this.db.execute(
         `UPDATE validators SET blocks_24h = ?, blocks_7d = ? WHERE baker_id = ?`,
         [blocks24h, blocks7d, bakerId]
+      );
+    }
+  }
+
+  /**
+   * Recalculate transactions_24h and transactions_7d for all validators
+   * Should be called periodically to update stale counts
+   */
+  async recalculateTransactionCounts(): Promise<void> {
+    const now = Date.now();
+    const oneDayAgo = now - ONE_DAY_MS;
+    const sevenDaysAgo = now - SEVEN_DAYS_MS;
+
+    // Calculate 24h transaction sums per baker
+    const sums24h = await this.db.execute(
+      `SELECT baker_id, SUM(transaction_count) as sum
+       FROM blocks
+       WHERE timestamp >= ?
+       GROUP BY baker_id`,
+      [oneDayAgo]
+    );
+
+    // Calculate 7d transaction sums per baker
+    const sums7d = await this.db.execute(
+      `SELECT baker_id, SUM(transaction_count) as sum
+       FROM blocks
+       WHERE timestamp >= ?
+       GROUP BY baker_id`,
+      [sevenDaysAgo]
+    );
+
+    // Build maps for quick lookup
+    const map24h = new Map<number, number>();
+    for (const row of sums24h.rows) {
+      map24h.set(row.baker_id as number, Number(row.sum));
+    }
+
+    const map7d = new Map<number, number>();
+    for (const row of sums7d.rows) {
+      map7d.set(row.baker_id as number, Number(row.sum));
+    }
+
+    // Get all validators
+    const validators = await this.db.execute('SELECT baker_id FROM validators');
+
+    // Update each validator
+    for (const row of validators.rows) {
+      const bakerId = row.baker_id as number;
+      const transactions24h = map24h.get(bakerId) ?? 0;
+      const transactions7d = map7d.get(bakerId) ?? 0;
+
+      await this.db.execute(
+        `UPDATE validators SET transactions_24h = ?, transactions_7d = ? WHERE baker_id = ?`,
+        [transactions24h, transactions7d, bakerId]
       );
     }
   }

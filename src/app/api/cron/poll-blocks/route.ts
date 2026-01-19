@@ -77,9 +77,10 @@ async function processBlockJob(): Promise<BlockPollResult | { error: string; sta
   const processResult = await blockTracker.processBlocks(fetchResult.blocks);
   timings['processBlocks'] = Date.now() - processStart;
 
-  // Recalculate block counts for all validators (updates blocks_24h, blocks_7d)
+  // Recalculate block and transaction counts for all validators
   const recalcStart = Date.now();
   await blockTracker.recalculateBlockCounts();
+  await blockTracker.recalculateTransactionCounts();
   timings['recalculate'] = Date.now() - recalcStart;
 
   timings['total'] = Date.now() - startTime;

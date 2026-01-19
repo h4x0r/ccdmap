@@ -4012,6 +4012,12 @@
   text-align: right;
 }
 
+.vip-transactions {
+  font-family: var(--font-mono);
+  color: var(--bb-green);
+  text-align: right;
+}
+
 .vip-last-block {
   font-family: var(--font-mono);
   color: var(--bb-gray);

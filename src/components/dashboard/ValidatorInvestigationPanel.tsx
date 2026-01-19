@@ -123,6 +123,8 @@ export function ValidatorInvestigationPanel({
                     <th>Lottery Power</th>
                     <th>Blocks (24h)</th>
                     <th>Blocks (7d)</th>
+                    <th>Txs (24h)</th>
+                    <th>Txs (7d)</th>
                     <th>Last Block</th>
                     <th>Status</th>
                   </tr>
@@ -158,6 +160,12 @@ export function ValidatorInvestigationPanel({
                       </td>
                       <td className="vip-blocks">
                         {validator.blocks7d ?? 0}
+                      </td>
+                      <td className="vip-transactions">
+                        {validator.transactions24h ?? 0}
+                      </td>
+                      <td className="vip-transactions">
+                        {validator.transactions7d ?? 0}
                       </td>
                       <td className="vip-last-block">
                         {formatLastBlockTime(validator.lastBlockTime)}

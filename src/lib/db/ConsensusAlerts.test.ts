@@ -42,13 +42,15 @@ describe('ConsensusAlerts', () => {
   function createMockBlockInfo(
     height: number,
     bakerId: number,
-    timestamp: number = Date.now()
+    timestamp: number = Date.now(),
+    transactionCount: number = 0
   ): BlockInfo {
     return {
       height,
       bakerId,
       timestamp,
       hash: `block-${height}-${bakerId}`,
+      transactionCount,
     };
   }
 
