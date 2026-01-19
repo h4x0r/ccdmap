@@ -246,9 +246,10 @@ export class ValidatorTracker {
           }
         }
 
-        // Update existing record
+        // Update existing record (including account_address if now available)
         await this.db.execute(
           `UPDATE validators SET
+            account_address = CASE WHEN ? != '' THEN ? ELSE account_address END,
             source = ?,
             linked_peer_id = ?,
             equity_capital = ?,
@@ -266,6 +267,8 @@ export class ValidatorTracker {
             state_transition_count = state_transition_count + ?
           WHERE baker_id = ?`,
           [
+            validator.accountAddress,
+            validator.accountAddress,
             source,
             linkedPeerId,
             validator.equityCapital.toString(),
