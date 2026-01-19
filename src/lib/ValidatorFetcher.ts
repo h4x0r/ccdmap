@@ -257,13 +257,10 @@ export class ValidatorFetcher {
       // Fetch batch in parallel
       const promises = batch.map(async (bakerId) => {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const poolInfo = await (client as any).getPoolInfo(bakerId);
-          // Extract account address from pool info
-          // The SDK returns it as poolInfo.poolInfo?.bakerAddress or similar
-          const address = poolInfo?.poolInfo?.bakerAddress?.toString()
-            || poolInfo?.bakerAddress?.toString()
-            || '';
+          // getPoolInfo returns BakerPoolStatus which has bakerAddress directly
+          const poolStatus = await client.getPoolInfo(bakerId);
+          // bakerAddress is of type AccountAddress.Type which has toString()
+          const address = poolStatus?.bakerAddress?.toString() || '';
           return { bakerId: Number(bakerId), address };
         } catch {
           // Baker might not have a pool or pool info unavailable
