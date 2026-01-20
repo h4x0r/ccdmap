@@ -3,8 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { TransactionsView } from './TransactionsView';
+import type { Validator } from '@/lib/types/validators';
 
 // Mock the useValidators hook
 const mockUseValidators = vi.fn();
@@ -143,5 +144,162 @@ describe('TransactionsView', () => {
 
     render(<TransactionsView />);
     expect(screen.getByText('--')).toBeInTheDocument();
+  });
+
+  it('displays phantom transaction percentage', () => {
+    mockUseValidators.mockReturnValue({
+      data: {
+        validators: [
+          { bakerId: 1, source: 'reporting', transactions24h: 80, transactions7d: 400, lotteryPower: 0.4 },
+          { bakerId: 2, source: 'chain_only', transactions24h: 20, transactions7d: 100, lotteryPower: 0.1 },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    render(<TransactionsView />);
+
+    // Phantom transactions 20 out of 100 total = 20%
+    expect(screen.getByText(/20\.0%/)).toBeInTheDocument();
+  });
+
+  it('renders baker IDs as clickable buttons', () => {
+    mockUseValidators.mockReturnValue({
+      data: {
+        validators: [
+          { bakerId: 42, source: 'reporting', transactions24h: 100, transactions7d: 400, lotteryPower: 0.1 },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    render(<TransactionsView />);
+
+    const bakerButton = screen.getByRole('button', { name: '42' });
+    expect(bakerButton).toBeInTheDocument();
+    expect(bakerButton).toHaveClass('bb-baker-link');
+  });
+
+  it('opens baker detail panel when clicking baker ID', () => {
+    const mockValidator: Partial<Validator> = {
+      bakerId: 42,
+      accountAddress: '3abc123def456',
+      source: 'reporting',
+      transactions24h: 100,
+      transactions7d: 400,
+      lotteryPower: 0.1,
+      blocks24h: 10,
+      blocks7d: 70,
+      lastBlockTime: null,
+      lastBlockHeight: null,
+      commissionRates: { baking: 0.1, finalization: 0.05, transaction: 0.01 },
+      openStatus: 'Open',
+      inCurrentPayday: true,
+      stateTransitionCount: 1,
+      dataCompleteness: 0.95,
+    };
+
+    mockUseValidators.mockReturnValue({
+      data: {
+        validators: [mockValidator],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    render(<TransactionsView />);
+
+    // Click the baker ID button
+    const bakerButton = screen.getByRole('button', { name: '42' });
+    fireEvent.click(bakerButton);
+
+    // The detail panel should open
+    expect(screen.getByText('Baker Details')).toBeInTheDocument();
+    expect(screen.getByText(/Baker #42/)).toBeInTheDocument();
+  });
+
+  it('closes baker detail panel when clicking close button', () => {
+    const mockValidator: Partial<Validator> = {
+      bakerId: 42,
+      accountAddress: '3abc123def456',
+      source: 'reporting',
+      transactions24h: 100,
+      transactions7d: 400,
+      lotteryPower: 0.1,
+      blocks24h: 10,
+      blocks7d: 70,
+      lastBlockTime: null,
+      lastBlockHeight: null,
+      commissionRates: { baking: 0.1, finalization: 0.05, transaction: 0.01 },
+      openStatus: 'Open',
+      inCurrentPayday: true,
+      stateTransitionCount: 1,
+      dataCompleteness: 0.95,
+    };
+
+    mockUseValidators.mockReturnValue({
+      data: {
+        validators: [mockValidator],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    render(<TransactionsView />);
+
+    // Open the detail panel
+    fireEvent.click(screen.getByRole('button', { name: '42' }));
+    expect(screen.getByText('Baker Details')).toBeInTheDocument();
+
+    // Close the panel
+    const closeButton = screen.getByLabelText('Close');
+    fireEvent.click(closeButton);
+
+    // The panel should be closed
+    expect(screen.queryByText('Baker Details')).not.toBeInTheDocument();
+  });
+
+  it('closes baker detail panel when clicking overlay', () => {
+    const mockValidator: Partial<Validator> = {
+      bakerId: 42,
+      accountAddress: '3abc123def456',
+      source: 'reporting',
+      transactions24h: 100,
+      transactions7d: 400,
+      lotteryPower: 0.1,
+      blocks24h: 10,
+      blocks7d: 70,
+      lastBlockTime: null,
+      lastBlockHeight: null,
+      commissionRates: { baking: 0.1, finalization: 0.05, transaction: 0.01 },
+      openStatus: 'Open',
+      inCurrentPayday: true,
+      stateTransitionCount: 1,
+      dataCompleteness: 0.95,
+    };
+
+    mockUseValidators.mockReturnValue({
+      data: {
+        validators: [mockValidator],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    render(<TransactionsView />);
+
+    // Open the detail panel
+    fireEvent.click(screen.getByRole('button', { name: '42' }));
+    expect(screen.getByText('Baker Details')).toBeInTheDocument();
+
+    // Click the overlay
+    const overlay = document.querySelector('.bdp-overlay');
+    expect(overlay).toBeInTheDocument();
+    fireEvent.click(overlay!);
+
+    // The panel should be closed
+    expect(screen.queryByText('Baker Details')).not.toBeInTheDocument();
   });
 });

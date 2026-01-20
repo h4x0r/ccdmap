@@ -9,10 +9,14 @@
  * - Transaction distribution by validator type
  */
 
+import { useState } from 'react';
 import { useValidators } from '@/hooks/useValidators';
+import { BakerDetailPanel } from './BakerDetailPanel';
+import type { Validator } from '@/lib/types/validators';
 
 export function TransactionsView() {
   const { data, isLoading, error } = useValidators();
+  const [selectedValidator, setSelectedValidator] = useState<Validator | null>(null);
   const validators = data?.validators ?? [];
 
   if (isLoading) {
@@ -43,6 +47,10 @@ export function TransactionsView() {
     { tx24h: 0, tx7d: 0, visibleTx24h: 0, phantomTx24h: 0 }
   );
 
+  const phantomTxPct = totals.tx24h > 0
+    ? (totals.phantomTx24h / totals.tx24h) * 100
+    : 0;
+
   // Top validators by transactions (24h)
   const topByTx = [...validators]
     .sort((a, b) => b.transactions24h - a.transactions24h)
@@ -68,7 +76,7 @@ export function TransactionsView() {
         </div>
         <div className="bb-stat-card negative">
           <div className="bb-stat-value">{formatNumber(totals.phantomTx24h)}</div>
-          <div className="bb-stat-label">By Phantom Validators</div>
+          <div className="bb-stat-label">By Phantom Validators ({phantomTxPct.toFixed(1)}%)</div>
         </div>
       </div>
 
@@ -88,7 +96,15 @@ export function TransactionsView() {
           <tbody>
             {topByTx.map((v) => (
               <tr key={v.bakerId}>
-                <td className="font-mono">{v.bakerId}</td>
+                <td className="font-mono">
+                  <button
+                    className="bb-baker-link"
+                    onClick={() => setSelectedValidator(v)}
+                    title="View baker details"
+                  >
+                    {v.bakerId}
+                  </button>
+                </td>
                 <td>
                   <span className={`bb-badge ${v.source === 'reporting' ? 'positive' : 'negative'}`}>
                     {v.source === 'reporting' ? 'Visible' : 'Phantom'}
@@ -104,6 +120,13 @@ export function TransactionsView() {
           </tbody>
         </table>
       </div>
+
+      {/* Baker Detail Panel */}
+      <BakerDetailPanel
+        isOpen={selectedValidator !== null}
+        validator={selectedValidator}
+        onClose={() => setSelectedValidator(null)}
+      />
     </div>
   );
 }
