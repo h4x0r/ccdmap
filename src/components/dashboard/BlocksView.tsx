@@ -9,10 +9,14 @@
  * - Block distribution by validator type
  */
 
+import { useState } from 'react';
 import { useValidators } from '@/hooks/useValidators';
+import { BakerDetailPanel } from './BakerDetailPanel';
+import type { Validator } from '@/lib/types/validators';
 
 export function BlocksView() {
   const { data, isLoading, error } = useValidators();
+  const [selectedValidator, setSelectedValidator] = useState<Validator | null>(null);
   const validators = data?.validators ?? [];
 
   if (isLoading) {
@@ -82,7 +86,7 @@ export function BlocksView() {
         </div>
         <div className="bb-stat-card negative">
           <div className="bb-stat-value">{formatNumber(totals.phantomBlocks24h)}</div>
-          <div className="bb-stat-label">By Phantom ({phantomBlockPct.toFixed(1)}%)</div>
+          <div className="bb-stat-label">By Phantom Validators ({phantomBlockPct.toFixed(1)}%)</div>
         </div>
       </div>
 
@@ -103,7 +107,15 @@ export function BlocksView() {
           <tbody>
             {topByBlocks.map((v) => (
               <tr key={v.bakerId}>
-                <td className="font-mono">{v.bakerId}</td>
+                <td className="font-mono">
+                  <button
+                    className="bb-baker-link"
+                    onClick={() => setSelectedValidator(v)}
+                    title="View baker details"
+                  >
+                    {v.bakerId}
+                  </button>
+                </td>
                 <td>
                   <span className={`bb-badge ${v.source === 'reporting' ? 'positive' : 'negative'}`}>
                     {v.source === 'reporting' ? 'Visible' : 'Phantom'}
@@ -120,6 +132,13 @@ export function BlocksView() {
           </tbody>
         </table>
       </div>
+
+      {/* Baker Detail Panel */}
+      <BakerDetailPanel
+        isOpen={selectedValidator !== null}
+        validator={selectedValidator}
+        onClose={() => setSelectedValidator(null)}
+      />
     </div>
   );
 }
