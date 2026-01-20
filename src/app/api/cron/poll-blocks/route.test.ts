@@ -18,8 +18,8 @@ vi.mock('@/lib/db/client', () => ({
   initializeSchema: vi.fn(),
 }));
 
-vi.mock('@/lib/BlockFetcher', () => ({
-  createMainnetBlockFetcher: vi.fn(() => ({
+vi.mock('@/lib/BlockFetcherGraphQL', () => ({
+  createMainnetBlockFetcherGraphQL: vi.fn(() => ({
     fetchBlocksSince: mockFetchBlocksSince,
     getLatestBlockHeight: mockFetcherGetLatestBlockHeight,
   })),

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDbClient, initializeSchema } from '@/lib/db/client';
 import { BlockTracker } from '@/lib/db/BlockTracker';
-import { createMainnetBlockFetcher } from '@/lib/BlockFetcher';
+import { createMainnetBlockFetcherGraphQL } from '@/lib/BlockFetcherGraphQL';
 
 // Block polling is lightweight - 60s should be plenty
 export const maxDuration = 60;
@@ -49,7 +49,7 @@ async function processBlockJob(): Promise<BlockPollResult | { error: string; sta
 
   // Create trackers
   const blockTracker = new BlockTracker(db);
-  const blockFetcher = createMainnetBlockFetcher({ timeout: 30000 });
+  const blockFetcher = createMainnetBlockFetcherGraphQL({ timeout: 30000 });
 
   // Get the last recorded block height
   const getHeightStart = Date.now();
@@ -60,7 +60,7 @@ async function processBlockJob(): Promise<BlockPollResult | { error: string; sta
   if (previousHeight === null) {
     const chainHeight = await blockFetcher.getLatestBlockHeight();
     if (chainHeight === null) {
-      return { error: 'Failed to get chain height', status: 502 };
+      return { error: 'Failed to get chain height from CCDScan GraphQL API', status: 502 };
     }
     // Start from INITIAL_BLOCKS_LOOKBACK blocks before chain head
     previousHeight = Math.max(0, chainHeight - INITIAL_BLOCKS_LOOKBACK);
