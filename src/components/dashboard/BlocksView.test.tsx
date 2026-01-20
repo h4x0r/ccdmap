@@ -12,6 +12,11 @@ vi.mock('@/hooks/useValidators', () => ({
   useValidators: () => mockUseValidators(),
 }));
 
+// Mock useResponsivePageSize to return fixed page size for tests
+vi.mock('@/hooks/useResponsivePageSize', () => ({
+  useResponsivePageSize: () => 15,
+}));
+
 describe('BlocksView', () => {
   beforeEach(() => {
     vi.clearAllMocks();

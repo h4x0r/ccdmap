@@ -9,21 +9,22 @@
  * - Transaction distribution by validator type
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useValidators } from '@/hooks/useValidators';
+import { useResponsivePageSize } from '@/hooks/useResponsivePageSize';
 import { BakerDetailPanel } from './BakerDetailPanel';
 import type { Validator } from '@/lib/types/validators';
-
-const PAGE_SIZE = 15;
 
 type SortPeriod = '24h' | '7d' | '30d';
 
 export function TransactionsView() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { data, isLoading, error } = useValidators();
   const [selectedValidator, setSelectedValidator] = useState<Validator | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortPeriod, setSortPeriod] = useState<SortPeriod>('24h');
   const validators = data?.validators ?? [];
+  const pageSize = useResponsivePageSize({ containerRef });
 
   const handleSortPeriodChange = (period: SortPeriod) => {
     setSortPeriod(period);
@@ -76,14 +77,14 @@ export function TransactionsView() {
     });
 
   // Pagination
-  const totalPages = Math.ceil(sortedValidators.length / PAGE_SIZE);
-  const startIdx = currentPage * PAGE_SIZE;
-  const paginatedValidators = sortedValidators.slice(startIdx, startIdx + PAGE_SIZE);
+  const totalPages = Math.ceil(sortedValidators.length / pageSize);
+  const startIdx = currentPage * pageSize;
+  const paginatedValidators = sortedValidators.slice(startIdx, startIdx + pageSize);
 
   const formatNumber = (n: number) => n.toLocaleString();
 
   return (
-    <div className="bb-data-view">
+    <div className="bb-data-view" ref={containerRef}>
       {/* Summary Cards */}
       <div className="bb-view-summary">
         <div className="bb-stat-card bb-stat-card-combined">
