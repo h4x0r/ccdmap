@@ -95,6 +95,8 @@ export class BlockTracker {
         }
       } else {
         // Update validator's last block info and increment block/transaction counts
+        // Note: All time windows are incremented for consistency; recalculate functions
+        // will correct for blocks aging out of shorter windows
         await this.db.execute(
           `UPDATE validators SET
             last_block_height = CASE
@@ -106,9 +108,14 @@ export class BlockTracker {
               ELSE last_block_time
             END,
             blocks_24h = blocks_24h + 1,
-            transactions_24h = transactions_24h + ?
+            blocks_7d = blocks_7d + 1,
+            blocks_30d = blocks_30d + 1,
+            transactions_24h = transactions_24h + ?,
+            transactions_7d = transactions_7d + ?,
+            transactions_30d = transactions_30d + ?
           WHERE baker_id = ?`,
-          [block.height, block.height, block.timestamp, block.timestamp, block.transactionCount, block.bakerId]
+          [block.height, block.height, block.timestamp, block.timestamp,
+           block.transactionCount, block.transactionCount, block.transactionCount, block.bakerId]
         );
       }
     }
