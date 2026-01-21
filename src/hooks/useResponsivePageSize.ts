@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useLayoutEffect, useCallback, RefObject } from 'react';
 
-const ROW_HEIGHT = 24; // Height per table row (3px padding*2 + ~17px content + 1px border)
+const ROW_HEIGHT = 29; // Height per table row (measured from actual UI)
 const MIN_ROWS = 5;    // Minimum rows to always show
 const MAX_ROWS = 100;  // Maximum rows cap
 
