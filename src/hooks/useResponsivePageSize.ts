@@ -5,7 +5,7 @@
  * accounting for summary cards, headers, and pagination controls.
  */
 
-import { useState, useEffect, useCallback, RefObject } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, RefObject } from 'react';
 
 const ROW_HEIGHT = 41; // Height per table row (padding + content + border)
 const MIN_ROWS = 5;    // Minimum rows to always show
@@ -29,25 +29,57 @@ export function useResponsivePageSize({
   tableHeaderHeight = 76, // Section header (32) + table thead (44)
 }: UseResponsivePageSizeOptions): number {
   const [pageSize, setPageSize] = useState(MIN_ROWS);
+  const [containerReady, setContainerReady] = useState(false);
 
   const calculatePageSize = useCallback(() => {
     const container = containerRef.current;
     if (!container) return MIN_ROWS;
 
     const containerHeight = container.clientHeight;
+    if (containerHeight === 0) return MIN_ROWS;
+
     const availableForRows = containerHeight - reservedHeight - paginationHeight - tableHeaderHeight;
     const calculatedRows = Math.floor(availableForRows / ROW_HEIGHT);
 
     return Math.max(MIN_ROWS, Math.min(MAX_ROWS, calculatedRows));
   }, [containerRef, reservedHeight, paginationHeight, tableHeaderHeight]);
 
-  useEffect(() => {
-    // Initial calculation
-    setPageSize(calculatePageSize());
+  // Check for container availability using RAF polling
+  useLayoutEffect(() => {
+    let rafId: number;
+    let attempts = 0;
+    const maxAttempts = 50; // ~830ms max wait
 
-    // Set up ResizeObserver for container size changes
+    const checkContainer = () => {
+      const container = containerRef.current;
+      if (container && container.clientHeight > 0) {
+        setContainerReady(true);
+        setPageSize(calculatePageSize());
+        return;
+      }
+
+      attempts++;
+      if (attempts < maxAttempts) {
+        rafId = requestAnimationFrame(checkContainer);
+      }
+    };
+
+    checkContainer();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [containerRef, calculatePageSize]);
+
+  // Set up ResizeObserver once container is ready
+  useEffect(() => {
+    if (!containerReady) return;
+
     const container = containerRef.current;
     if (!container) return;
+
+    // Recalculate on mount
+    setPageSize(calculatePageSize());
 
     const resizeObserver = new ResizeObserver(() => {
       setPageSize(calculatePageSize());
@@ -63,7 +95,7 @@ export function useResponsivePageSize({
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
     };
-  }, [containerRef, calculatePageSize]);
+  }, [containerReady, containerRef, calculatePageSize]);
 
   return pageSize;
 }
