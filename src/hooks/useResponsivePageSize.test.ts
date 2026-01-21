@@ -42,9 +42,9 @@ describe('useResponsivePageSize', () => {
       useResponsivePageSize({ containerRef: mockContainerRef })
     );
 
-    // Available: 600 - 180 (reserved) - 48 (pagination) - 44 (header) = 328
-    // Rows: 328 / 40 = 8.2 → 8 rows
-    expect(result.current).toBe(8);
+    // Available: 600 - 210 (reserved) - 70 (pagination) - 44 (header) = 276
+    // Rows: 276 / 41 = 6.7 → 6 rows
+    expect(result.current).toBe(6);
   });
 
   it('respects minimum rows', () => {
@@ -68,7 +68,7 @@ describe('useResponsivePageSize', () => {
       useResponsivePageSize({ containerRef: mockContainerRef })
     );
 
-    expect(result.current).toBe(50); // MAX_ROWS
+    expect(result.current).toBe(100); // MAX_ROWS
   });
 
   it('accepts custom reserved height', () => {
@@ -83,8 +83,8 @@ describe('useResponsivePageSize', () => {
       })
     );
 
-    // Available: 600 - 100 - 48 - 44 = 408
-    // Rows: 408 / 40 = 10.2 → 10 rows
-    expect(result.current).toBe(10);
+    // Available: 600 - 100 - 70 (pagination) - 44 (header) = 386
+    // Rows: 386 / 41 = 9.4 → 9 rows
+    expect(result.current).toBe(9);
   });
 });

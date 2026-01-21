@@ -7,9 +7,9 @@
 
 import { useState, useEffect, useCallback, RefObject } from 'react';
 
-const ROW_HEIGHT = 40; // Approximate height per table row in pixels
+const ROW_HEIGHT = 41; // Height per table row (padding + content + border)
 const MIN_ROWS = 5;    // Minimum rows to always show
-const MAX_ROWS = 50;   // Maximum rows cap
+const MAX_ROWS = 100;  // Maximum rows cap
 
 interface UseResponsivePageSizeOptions {
   /** Reference to the container element */
@@ -24,8 +24,8 @@ interface UseResponsivePageSizeOptions {
 
 export function useResponsivePageSize({
   containerRef,
-  reservedHeight = 180, // Summary cards + section header
-  paginationHeight = 48,
+  reservedHeight = 210, // Container padding (32) + summary cards (~115) + section padding/header (~63)
+  paginationHeight = 70, // Pagination controls + section bottom padding
   tableHeaderHeight = 44,
 }: UseResponsivePageSizeOptions): number {
   const [pageSize, setPageSize] = useState(MIN_ROWS);
