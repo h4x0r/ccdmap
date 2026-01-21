@@ -41,6 +41,17 @@ export function useResponsivePageSize({
     const availableForRows = containerHeight - reservedHeight - paginationHeight - tableHeaderHeight;
     const calculatedRows = Math.floor(availableForRows / ROW_HEIGHT);
 
+    // Debug logging
+    console.log('[useResponsivePageSize]', {
+      containerHeight,
+      reservedHeight,
+      paginationHeight,
+      tableHeaderHeight,
+      availableForRows,
+      calculatedRows,
+      finalRows: Math.max(MIN_ROWS, Math.min(MAX_ROWS, calculatedRows)),
+    });
+
     return Math.max(MIN_ROWS, Math.min(MAX_ROWS, calculatedRows));
   }, [containerRef, reservedHeight, paginationHeight, tableHeaderHeight]);
 
