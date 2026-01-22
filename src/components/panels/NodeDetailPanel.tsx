@@ -248,10 +248,16 @@ export function NodeDetailPanel() {
     selectedNode.bakingCommitteeMember === 'ActiveInCommittee' &&
     selectedNode.consensusBakerId !== null;
 
-  const healthStyles = {
-    healthy: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50',
-    lagging: 'bg-amber-500/20 text-amber-400 border-amber-500/50',
-    issue: 'bg-red-500/20 text-red-400 border-red-500/50',
+  const healthDotStyles = {
+    healthy: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]',
+    lagging: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] animate-pulse',
+    issue: 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)] animate-[blink_0.5s_ease-in-out_infinite]',
+  }[health];
+
+  const healthTitle = {
+    healthy: 'Healthy',
+    lagging: 'Lagging',
+    issue: 'Issue',
   }[health];
 
   return (
@@ -274,19 +280,21 @@ export function NodeDetailPanel() {
             </div>
             <div className="h-px flex-1 bg-gradient-to-r from-[var(--concordium-teal)]/30 to-transparent" />
           </div>
-          <h2 className="font-mono font-bold text-base truncate pr-2 text-[var(--concordium-teal)]">
+          <h2 className="font-mono font-bold text-base truncate pr-2 text-[var(--concordium-teal)] flex items-center gap-2">
+            {isBaker && <span title="Baker">🥖</span>}
             {selectedNode.nodeName}
           </h2>
-          <div className="flex gap-2 mt-2 flex-wrap">
-            <Badge variant="outline" className={cn('text-[10px] font-mono', healthStyles)}>
-              {health.toUpperCase()}
-            </Badge>
+          <div className="flex gap-2 mt-2 flex-wrap items-center">
+            <div className="flex items-center gap-1.5" title={healthTitle}>
+              <div className={cn('h-2.5 w-2.5 rounded-full', healthDotStyles)} />
+              <span className="text-[10px] font-mono text-muted-foreground uppercase">{health}</span>
+            </div>
             {isBaker && (
               <Badge
                 variant="outline"
                 className="text-[10px] font-mono bg-purple-500/20 text-purple-400 border-purple-500/50"
               >
-                BAKER
+                🥖 BAKER
               </Badge>
             )}
             {peerData && (
