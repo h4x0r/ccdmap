@@ -8,6 +8,7 @@ import { MiniMetricTrack } from './MiniMetricTrack';
 export interface NodeDetailPanelProps {
   nodeId: string;
   nodeName: string;
+  isBaker?: boolean;
   healthHistory: HealthStatus[];
   latencyHistory: MRTGDataPoint[];
   bandwidthInHistory: MRTGDataPoint[];
@@ -20,6 +21,7 @@ export interface NodeDetailPanelProps {
 export function NodeDetailPanel({
   nodeId,
   nodeName,
+  isBaker,
   healthHistory,
   latencyHistory,
   bandwidthInHistory,
@@ -28,6 +30,23 @@ export function NodeDetailPanel({
   onClose,
   onOpenDeepDive,
 }: NodeDetailPanelProps) {
+  // Get current health from most recent history entry
+  const currentHealth = healthHistory.length > 0
+    ? healthHistory[healthHistory.length - 1].status
+    : 'healthy';
+
+  const statusDotStyle = {
+    healthy: { background: 'var(--bb-green)', boxShadow: '0 0 6px var(--bb-green)' },
+    lagging: { background: 'var(--bb-amber)', boxShadow: '0 0 6px var(--bb-amber)' },
+    issue: { background: 'var(--bb-red)', boxShadow: '0 0 6px var(--bb-red)' },
+  }[currentHealth];
+
+  const statusDotClass = {
+    healthy: 'bb-status-dot-healthy',
+    lagging: 'bb-status-dot-lagging',
+    issue: 'bb-status-dot-issue',
+  }[currentHealth];
+
   return (
     <div className="node-detail-panel bb-panel">
       {/* Header */}
@@ -42,8 +61,21 @@ export function NodeDetailPanel({
           borderBottom: '1px solid var(--bb-border)',
         }}
       >
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Status Dot */}
+          <span
+            className={`bb-status-dot ${statusDotClass}`}
+            title={currentHealth.charAt(0).toUpperCase() + currentHealth.slice(1)}
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              flexShrink: 0,
+              ...statusDotStyle,
+            }}
+          />
           <span className="font-mono font-bold text-[var(--bb-orange)]">
+            {isBaker && <span className="bb-baker-emoji" title="Baker">🥖</span>}
             {nodeName}
           </span>
           <span

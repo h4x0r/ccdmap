@@ -556,6 +556,7 @@ function DesktopHome() {
                 <NodeDetailPanel
                   nodeId={selectedNode.nodeId}
                   nodeName={selectedNode.nodeName || 'Unnamed Node'}
+                  isBaker={selectedNode.bakingCommitteeMember === 'ActiveInCommittee' && selectedNode.consensusBakerId !== null}
                   healthHistory={nodeHistoryData.healthHistory}
                   latencyHistory={nodeHistoryData.latencyHistory}
                   bandwidthInHistory={nodeHistoryData.bandwidthInHistory}
