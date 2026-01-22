@@ -339,6 +339,12 @@
   background: rgba(0, 255, 128, 0.25);
 }
 
+/* Baker panel highlighting */
+.bb-panel.bb-baker-panel {
+  background: rgba(0, 255, 128, 0.06);
+  border-color: rgba(0, 255, 128, 0.3);
+}
+
 .bb-baker-id {
   color: var(--bb-green);
   font-weight: 600;

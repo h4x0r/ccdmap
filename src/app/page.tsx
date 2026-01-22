@@ -8,8 +8,10 @@ import { useMetricHistory, type MetricSnapshot } from '@/hooks/useMetricHistory'
 import { useNodeHistory } from '@/hooks/useNodeHistory';
 import { useNetworkHistory } from '@/hooks/useNetworkHistory';
 import { usePeers } from '@/hooks/usePeers';
+import { useValidators } from '@/hooks/useValidators';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useAudio } from '@/hooks/useAudio';
+import { formatLotteryPower } from '@/lib/format-utils';
 import { calculateNetworkPulse, getPulseStatus, THRESHOLDS, calculateFinalizationHealth, calculateLatencyHealth } from '@/lib/pulse';
 import { calculateNodeHealth } from '@/lib/transforms';
 import { Sparkline } from '@/components/dashboard/Sparkline';
@@ -85,6 +87,7 @@ function DesktopHome() {
   const { metrics: networkMetrics, dataUpdatedAt } = useNetworkMetrics();
   const { data: nodes } = useNodes();
   const { peers } = usePeers();
+  const { data: validatorsData } = useValidators();
   const { playAcquisitionSequence } = useAudio();
 
   // Find selected node from nodes array
@@ -98,6 +101,24 @@ function DesktopHome() {
 
   // Create a Set of known node IDs for quick lookup (used for peer availability check)
   const knownNodeIds = useMemo(() => new Set(nodes?.map(n => n.nodeId) ?? []), [nodes]);
+
+  // Create a map of bakerId -> Validator for quick lookup
+  const validatorMap = useMemo(() => {
+    const map = new Map<number, { lotteryPower: number | null }>();
+    if (validatorsData?.validators) {
+      for (const v of validatorsData.validators) {
+        map.set(v.bakerId, { lotteryPower: v.lotteryPower });
+      }
+    }
+    return map;
+  }, [validatorsData]);
+
+  // Get validator info for selected node (if it's a baker)
+  const selectedNodeValidator = useMemo(() => {
+    if (!selectedNode || selectedNode.consensusBakerId === null) return null;
+    return validatorMap.get(selectedNode.consensusBakerId) ?? null;
+  }, [selectedNode, validatorMap]);
+
   const { history, addSnapshot } = useMetricHistory();
   const { data: networkHistoryData } = useNetworkHistory(15); // 15 minutes of network-wide history from Turso
   const currentTime = useCurrentTime();
@@ -710,11 +731,12 @@ function DesktopHome() {
 
         {/* ===== BOTTOM LEFT - NODE DETAILS ===== */}
         <div className="bb-grid-cell">
-          <div className="bb-panel h-full flex flex-col">
+          <div className={`bb-panel h-full flex flex-col ${selectedNode?.consensusBakerId !== null ? 'bb-baker-panel' : ''}`}>
             <div className="bb-panel-header dark">
               Node Details
               {selectedNode && (
                 <span className="text-[var(--bb-cyan)] font-normal ml-2">
+                  {selectedNode.consensusBakerId !== null && <span className="bb-baker-emoji" title="Baker">🥖</span>}
                   {selectedNode.nodeName || selectedNode.nodeId.slice(0, 12)}
                 </span>
               )}
@@ -761,11 +783,19 @@ function DesktopHome() {
                       <span className="bb-forensic-value">{Math.floor(selectedNode.uptime / 3600)}h {Math.floor((selectedNode.uptime % 3600) / 60)}m</span>
                     </div>
                     <div className="bb-forensic-row">
-                      <span className="bb-forensic-label">Baker</span>
-                      <span className={`bb-forensic-value ${selectedNode.bakingCommitteeMember === 'ActiveInCommittee' ? 'text-[var(--bb-magenta)]' : ''}`}>
-                        {selectedNode.bakingCommitteeMember === 'ActiveInCommittee' ? `#${selectedNode.consensusBakerId}` : 'NO'}
+                      <span className="bb-forensic-label">Baker ID</span>
+                      <span className={`bb-forensic-value ${selectedNode.consensusBakerId !== null ? 'text-[var(--bb-magenta)]' : ''}`}>
+                        {selectedNode.consensusBakerId !== null ? `#${selectedNode.consensusBakerId}` : 'N/A'}
                       </span>
                     </div>
+                    {selectedNodeValidator && (
+                      <div className="bb-forensic-row">
+                        <span className="bb-forensic-label">Lottery Power</span>
+                        <span className="bb-forensic-value text-[var(--bb-magenta)]">
+                          {formatLotteryPower(selectedNodeValidator.lotteryPower)}
+                        </span>
+                      </div>
+                    )}
                     <div className="bb-forensic-row">
                       <span className="bb-forensic-label">Finalizer</span>
                       <span className={`bb-forensic-value ${selectedNode.finalizationCommitteeMember ? 'text-[var(--bb-cyan)]' : ''}`}>
