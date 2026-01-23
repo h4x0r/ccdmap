@@ -409,10 +409,10 @@ function DesktopHome() {
       </div>
 
       {/* ===== MAIN CONTENT GRID ===== */}
-      <div className="flex-1 min-h-0 bb-grid" style={{ gridTemplateColumns: '280px 1fr 400px', gridTemplateRows: 'auto 1fr' }}>
+      <div className="flex-1 min-h-0 bb-grid" style={{ gridTemplateColumns: '280px 1fr 400px', gridTemplateRows: '1fr' }}>
 
         {/* ===== LEFT COLUMN - METRICS + NODE DETAILS ===== */}
-        <div className="bb-grid-cell flex flex-col" style={{ gridRow: 'span 2' }}>
+        <div className="bb-grid-cell flex flex-col" >
           {/* Network Pulse Panel - Compact */}
           <div className="bb-panel flex-shrink-0">
             <div className="bb-panel-header" style={{ padding: '4px 8px', fontSize: '10px' }}>Network Pulse</div>
@@ -682,23 +682,21 @@ function DesktopHome() {
                         </span>
                       </div>
                       <div className="bb-peer-list">
-                        {selectedNode.peersList.slice(0, 20).map((peerId) => {
+                        {selectedNode.peersList.map((peerId) => {
                           const isAvailable = knownNodeIds.has(peerId);
                           return (
                             <button
                               key={peerId}
                               onClick={() => isAvailable && selectNode(peerId)}
-                              className={`bb-peer-item ${isAvailable ? 'available' : ''}`}
+                              className={`bb-peer-item ${isAvailable ? 'available' : 'phantom'}`}
                               disabled={!isAvailable}
-                              title={isAvailable ? 'Click to view this node' : 'Node not in current dashboard'}
+                              title={isAvailable ? 'Click to view this node' : 'Phantom node - not reporting to dashboard'}
                             >
+                              {!isAvailable && <span className="bb-phantom-icon">👻</span>}
                               {peerId.slice(0, 8)}...
                             </button>
                           );
                         })}
-                        {selectedNode.peersList.length > 20 && (
-                          <span className="bb-peer-overflow">+{selectedNode.peersList.length - 20} more</span>
-                        )}
                       </div>
                     </div>
                   )}
@@ -713,7 +711,7 @@ function DesktopHome() {
         </div>
 
         {/* ===== CENTER - VISUALIZATION ===== */}
-        <div className="bb-grid-cell flex flex-col" style={{ gridRow: 'span 2' }}>
+        <div className="bb-grid-cell flex flex-col" >
           {/* View Tabs */}
           <div className="bb-tabs flex-shrink-0">
             <button
@@ -877,7 +875,7 @@ function DesktopHome() {
         </div>
 
         {/* ===== RIGHT COLUMN - NODE LIST ===== */}
-        <div className="bb-grid-cell flex flex-col" style={{ gridRow: 'span 2' }}>
+        <div className="bb-grid-cell flex flex-col" >
           <div className="bb-panel flex-1 flex flex-col">
             <div className="bb-panel-header dark">
               Node Explorer

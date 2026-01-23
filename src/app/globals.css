@@ -955,6 +955,41 @@
   color: var(--bb-gray);
 }
 
+.bb-peer-item {
+  font-size: 9px;
+  font-family: inherit;
+  padding: 2px 6px;
+  background: var(--bb-panel);
+  border: 1px solid var(--bb-border);
+  color: var(--bb-gray-dim);
+  cursor: not-allowed;
+  transition: all 0.1s;
+  opacity: 0.6;
+}
+
+.bb-peer-item.available {
+  color: var(--bb-cyan);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.bb-peer-item.available:hover {
+  background: var(--bb-orange-dim);
+  border-color: var(--bb-orange);
+  color: var(--bb-orange);
+}
+
+.bb-peer-item.phantom {
+  color: var(--bb-gray-dim);
+  border-color: rgba(138, 43, 226, 0.3);
+  background: rgba(138, 43, 226, 0.1);
+}
+
+.bb-phantom-icon {
+  font-size: 8px;
+  margin-right: 2px;
+}
+
 /* ============================================
    BLOOMBERG LOGO AREA
    ============================================ */
