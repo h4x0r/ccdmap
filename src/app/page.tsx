@@ -413,61 +413,58 @@ function DesktopHome() {
 
         {/* ===== LEFT COLUMN - METRICS + NODE DETAILS ===== */}
         <div className="bb-grid-cell flex flex-col" style={{ gridRow: 'span 2' }}>
-          {/* Network Pulse Panel */}
+          {/* Network Pulse Panel - Compact */}
           <div className="bb-panel flex-shrink-0">
-            <div className="bb-panel-header">Network Pulse</div>
-            <div className="bb-panel-body">
-              <div className="flex items-baseline justify-between mb-2">
-                <span className={`bb-metric-value large ${pulseColorClass}`}>{currentMetrics.pulse}%</span>
-                <span className={`text-xs font-bold ${pulseColorClass === 'positive' ? 'text-[var(--bb-green)]' : pulseColorClass === 'warning' ? 'text-[var(--bb-amber)]' : 'text-[var(--bb-red)]'}`}>
+            <div className="bb-panel-header" style={{ padding: '4px 8px', fontSize: '10px' }}>Network Pulse</div>
+            <div className="bb-panel-body" style={{ padding: '6px 8px' }}>
+              <div className="flex items-baseline justify-between">
+                <span className={`bb-metric-value ${pulseColorClass}`} style={{ fontSize: '20px' }}>{currentMetrics.pulse}%</span>
+                <span className={`text-[10px] font-bold ${pulseColorClass === 'positive' ? 'text-[var(--bb-green)]' : pulseColorClass === 'warning' ? 'text-[var(--bb-amber)]' : 'text-[var(--bb-red)]'}`}>
                   {pulseStatus.label}
                 </span>
               </div>
-              <div className="bb-metric-spark">
+              <div className="bb-metric-spark" style={{ height: '20px' }}>
                 <Sparkline data={pulseSparkline} min={0} max={100} maxBars={20} />
               </div>
             </div>
           </div>
 
-          {/* Metrics Grid */}
-          <div className="bb-metrics-grid flex-1" style={{ gridTemplateColumns: '1fr 1fr' }}>
-            <div className="bb-metric">
-              <span className="bb-metric-label">Nodes</span>
-              <span className="bb-metric-value">{currentMetrics.nodes}</span>
-              <div className="bb-metric-spark">
-                <Sparkline data={nodesSparkline} maxBars={12} />
-              </div>
+          {/* Metrics Grid - Compact */}
+          <div className="bb-metrics-grid flex-shrink-0" style={{ gridTemplateColumns: '1fr 1fr', gap: '2px', padding: '4px' }}>
+            <div className="bb-metric" style={{ padding: '4px 6px' }}>
+              <span className="bb-metric-label" style={{ fontSize: '8px' }}>Nodes</span>
+              <span className="bb-metric-value" style={{ fontSize: '14px' }}>{currentMetrics.nodes}</span>
             </div>
-            <div className="bb-metric">
-              <span className="bb-metric-label">Avg Peers</span>
-              <span className="bb-metric-value">{networkMetrics?.avgPeers ?? 0}</span>
+            <div className="bb-metric" style={{ padding: '4px 6px' }}>
+              <span className="bb-metric-label" style={{ fontSize: '8px' }}>Avg Peers</span>
+              <span className="bb-metric-value" style={{ fontSize: '14px' }}>{networkMetrics?.avgPeers ?? 0}</span>
             </div>
-            <div className="bb-metric">
-              <span className="bb-metric-label">Sync Lag</span>
-              <span className={`bb-metric-value ${currentMetrics.finalizationTime >= THRESHOLDS.FINALIZATION_TIMEOUT ? 'negative' : currentMetrics.finalizationTime >= THRESHOLDS.FINALIZATION_OPTIMAL ? 'warning' : ''}`}>
+            <div className="bb-metric" style={{ padding: '4px 6px' }}>
+              <span className="bb-metric-label" style={{ fontSize: '8px' }}>Sync Lag</span>
+              <span className={`bb-metric-value ${currentMetrics.finalizationTime >= THRESHOLDS.FINALIZATION_TIMEOUT ? 'negative' : currentMetrics.finalizationTime >= THRESHOLDS.FINALIZATION_OPTIMAL ? 'warning' : ''}`} style={{ fontSize: '14px' }}>
                 {currentMetrics.finalizationTime} blks
               </span>
             </div>
-            <div className="bb-metric">
-              <span className="bb-metric-label">Consensus</span>
-              <span className={`bb-metric-value ${currentMetrics.consensus < THRESHOLDS.CONSENSUS_QUORUM ? 'negative' : 'positive'}`}>
+            <div className="bb-metric" style={{ padding: '4px 6px' }}>
+              <span className="bb-metric-label" style={{ fontSize: '8px' }}>Consensus</span>
+              <span className={`bb-metric-value ${currentMetrics.consensus < THRESHOLDS.CONSENSUS_QUORUM ? 'negative' : 'positive'}`} style={{ fontSize: '14px' }}>
                 {currentMetrics.consensus}%
               </span>
             </div>
-            <div className="bb-metric">
-              <span className="bb-metric-label">Latency</span>
-              <span className="bb-metric-value">{currentMetrics.latency}ms</span>
+            <div className="bb-metric" style={{ padding: '4px 6px' }}>
+              <span className="bb-metric-label" style={{ fontSize: '8px' }}>Latency</span>
+              <span className="bb-metric-value" style={{ fontSize: '14px' }}>{currentMetrics.latency}ms</span>
             </div>
-            <div className="bb-metric">
-              <span className="bb-metric-label">Refresh</span>
-              <span className="bb-metric-value">{secondsUntilRefresh}s</span>
+            <div className="bb-metric" style={{ padding: '4px 6px' }}>
+              <span className="bb-metric-label" style={{ fontSize: '8px' }}>Refresh</span>
+              <span className="bb-metric-value" style={{ fontSize: '14px' }}>{secondsUntilRefresh}s</span>
             </div>
           </div>
 
-          {/* Alerts Panel */}
+          {/* Alerts Panel - Compact */}
           <div className="bb-panel flex-shrink-0">
-            <div className="bb-panel-header amber">Alerts</div>
-            <div className="bb-panel-body" style={{ maxHeight: '120px' }}>
+            <div className="bb-panel-header amber" style={{ padding: '4px 8px', fontSize: '10px' }}>Alerts</div>
+            <div className="bb-panel-body" style={{ maxHeight: '60px', padding: '4px 8px', fontSize: '10px' }}>
               {currentMetrics.consensus < THRESHOLDS.CONSENSUS_QUORUM && (
                 <div className="bb-alert error">
                   CRITICAL: Consensus below quorum ({currentMetrics.consensus}% &lt; {THRESHOLDS.CONSENSUS_QUORUM}%)
