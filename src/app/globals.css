@@ -3440,19 +3440,20 @@
   border-left-color: var(--bb-cyan);
 }
 
-/* Validator (Baker) Badge - Baker Emoji */
+/* Validator Badge - Checkmark */
 .validator-badge {
   position: absolute;
   top: -12px;
   right: -8px;
   z-index: 10;
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
-  filter: drop-shadow(0 0 4px rgba(255, 200, 100, 0.8));
+  color: var(--bb-green);
+  filter: drop-shadow(0 0 4px rgba(0, 255, 128, 0.8));
 }
 
 .validator-badge::after {
-  content: '🥖';
+  content: '✓';
 }
 
 /* Critical Node Star Badge */
@@ -4585,9 +4586,11 @@
   animation: bb-blink 0.5s ease-in-out infinite;
 }
 
-.bb-baker-emoji {
+.bb-validator-icon {
   margin-right: 4px;
-  font-size: 12px;
+  font-size: 11px;
+  color: var(--bb-green);
+  font-weight: bold;
 }
 
 /* ============================================= */

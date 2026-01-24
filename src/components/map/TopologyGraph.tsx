@@ -126,7 +126,7 @@ function ConcordiumNodeComponent({ data, selected }: NodeProps) {
               {nodeData.isBaker && (
                 <div
                   className="validator-badge"
-                  title="Validator (Baker)"
+                  title="Validator"
                 />
               )}
               {isCritical && (

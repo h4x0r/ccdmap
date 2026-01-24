@@ -75,7 +75,7 @@ export function NodeDetailPanel({
             }}
           />
           <span className="font-mono font-bold text-[var(--bb-orange)]">
-            {isBaker && <span className="bb-baker-emoji" title="Baker">🥖</span>}
+            {isBaker && <span className="bb-validator-icon" title="Validator">✓</span>}
             {nodeName}
           </span>
           <span

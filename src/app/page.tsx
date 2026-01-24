@@ -494,7 +494,7 @@ function DesktopHome() {
               Node Details
               {selectedNode && (
                 <span className="text-[var(--bb-cyan)] font-normal ml-2">
-                  {selectedNode.consensusBakerId !== null && <span className="bb-baker-emoji" title="Baker">🥖</span>}
+                  {selectedNode.consensusBakerId !== null && <span className="bb-validator-icon" title="Validator">✓</span>}
                   {selectedNode.nodeName || selectedNode.nodeId.slice(0, 12)}
                 </span>
               )}
@@ -924,7 +924,7 @@ function DesktopHome() {
                           style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                         >
                           <span className={`bb-status-dot ${statusClass}`} title={statusTitle} />
-                          {isBaker && <span className="bb-baker-emoji" title="Baker">🥖</span>}
+                          {isBaker && <span className="bb-validator-icon" title="Validator">✓</span>}
                           {node.nodeName || node.nodeId.slice(0, 16)}
                         </td>
                         <td className="num">{node.peersCount}</td>
