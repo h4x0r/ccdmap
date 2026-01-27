@@ -7,6 +7,7 @@ import { useNetworkMetrics, useNodes } from '@/hooks/useNodes';
 import { usePeers } from '@/hooks/usePeers';
 import { calculateNetworkPulse, getPulseStatus, THRESHOLDS } from '@/lib/pulse';
 import { MobileNodeDetail } from './MobileNodeDetail';
+import { MobileSecurityView } from './MobileSecurityView';
 
 // Dynamic imports for map components
 const TopologyGraph = dynamic(
@@ -14,12 +15,21 @@ const TopologyGraph = dynamic(
   { ssr: false, loading: () => <div className="mobile-loading">Loading...</div> }
 );
 
-const GeographicMap = dynamic(
-  () => import('@/components/map/GeographicMap').then((m) => ({ default: m.GeographicMap })),
-  { ssr: false, loading: () => <div className="mobile-loading">Loading...</div> }
-);
+type MobileView = 'list' | 'topology' | 'security';
+type ListSortColumn = 'name' | 'peers';
+type NodeSortStage = 1 | 2 | 3 | 4;
 
-type MobileView = 'list' | 'topology' | 'map';
+/**
+ * Get sort indicator for node column based on 4-stage cycle
+ */
+function getNodeSortIndicator(stage: NodeSortStage): string {
+  switch (stage) {
+    case 1: return '▲';      // A-Z
+    case 2: return '▼';      // Z-A
+    case 3: return '✓▲';     // Validators first, A-Z
+    case 4: return '✓▼';     // Validators first, Z-A
+  }
+}
 
 export function MobileHome() {
   const { selectedNodeId, selectNode } = useAppStore();
@@ -28,6 +38,9 @@ export function MobileHome() {
   const { peers } = usePeers();
   const [activeView, setActiveView] = useState<MobileView>('list');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortColumn, setSortColumn] = useState<ListSortColumn>('peers');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [nodeSortStage, setNodeSortStage] = useState<NodeSortStage>(1);
 
   // Calculate pulse
   const consensusNodeCount = networkMetrics
@@ -55,11 +68,55 @@ export function MobileHome() {
     );
   }, [nodes, searchQuery]);
 
-  // Sort by peer count descending
-  const sortedNodes = useMemo(
-    () => [...filteredNodes].sort((a, b) => b.peersCount - a.peersCount),
-    [filteredNodes]
-  );
+  // Sort nodes based on column and direction
+  const sortedNodes = useMemo(() => {
+    return [...filteredNodes].sort((a, b) => {
+      // Special handling for 'name' column: 4-stage sort
+      if (sortColumn === 'name') {
+        const validatorsFirst = nodeSortStage === 3 || nodeSortStage === 4;
+        const descending = nodeSortStage === 2 || nodeSortStage === 4;
+
+        // Validators first when in stage 3 or 4
+        if (validatorsFirst) {
+          const aIsBaker = a.consensusBakerId !== null;
+          const bIsBaker = b.consensusBakerId !== null;
+          if (aIsBaker && !bIsBaker) return -1;
+          if (!aIsBaker && bIsBaker) return 1;
+        }
+
+        // Then sort alphabetically
+        const nameA = (a.nodeName || a.nodeId).toLowerCase();
+        const nameB = (b.nodeName || b.nodeId).toLowerCase();
+        const comparison = nameA.localeCompare(nameB);
+        return descending ? -comparison : comparison;
+      }
+
+      // For peers column: normal asc/desc
+      const comparison = a.peersCount - b.peersCount;
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredNodes, sortColumn, sortDirection, nodeSortStage]);
+
+  // Handle column header click
+  const handleSort = (column: ListSortColumn) => {
+    if (column === 'name') {
+      if (sortColumn === 'name') {
+        // Cycle through 4 stages
+        setNodeSortStage((prev) => ((prev % 4) + 1) as NodeSortStage);
+      } else {
+        setSortColumn('name');
+        setNodeSortStage(1);
+      }
+    } else {
+      // For peers: toggle asc/desc
+      if (sortColumn === column) {
+        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      } else {
+        setSortColumn(column);
+        setSortDirection('desc');
+      }
+    }
+  };
 
   // Find selected node
   const selectedNode = nodes?.find((n) => n.nodeId === selectedNodeId) ?? null;
@@ -117,26 +174,48 @@ export function MobileHome() {
               />
             </div>
 
+            {/* Sortable Column Headers */}
+            <div className="mobile-list-headers">
+              <button
+                className={`mobile-list-header ${sortColumn === 'name' ? 'active' : ''}`}
+                onClick={() => handleSort('name')}
+              >
+                NODE {sortColumn === 'name' ? getNodeSortIndicator(nodeSortStage) : ''}
+              </button>
+              <button
+                className={`mobile-list-header ${sortColumn === 'peers' ? 'active' : ''}`}
+                onClick={() => handleSort('peers')}
+              >
+                PEERS {sortColumn === 'peers' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              </button>
+              <span className="mobile-list-header">FIN</span>
+            </div>
+
             {/* Node List */}
             <div className="mobile-node-list">
-              {sortedNodes.map((node) => (
-                <button
-                  key={node.nodeId}
-                  className={`mobile-node-item ${selectedNodeId === node.nodeId ? 'selected' : ''}`}
-                  onClick={() => selectNode(node.nodeId)}
-                >
-                  <div className="mobile-node-info">
-                    <span className="mobile-node-name">{node.nodeName || 'Unnamed'}</span>
-                    <span className="mobile-node-id">{node.nodeId.slice(0, 8)}...</span>
-                  </div>
-                  <div className="mobile-node-stats">
-                    <span className={`mobile-node-status ${node.finalizedBlockHeight > 0 ? 'online' : 'offline'}`}>
-                      {node.finalizedBlockHeight > 0 ? 'ONLINE' : 'OFFLINE'}
-                    </span>
-                    <span className="mobile-node-peers">{node.peersCount} peers</span>
-                  </div>
-                </button>
-              ))}
+              {sortedNodes.map((node) => {
+                const isBaker = node.consensusBakerId !== null;
+                return (
+                  <button
+                    key={node.nodeId}
+                    data-testid="mobile-node-item"
+                    className={`mobile-node-item ${selectedNodeId === node.nodeId ? 'selected' : ''}`}
+                    onClick={() => selectNode(node.nodeId)}
+                  >
+                    <div className="mobile-node-info">
+                      <span className="mobile-node-name">
+                        {isBaker && <span className="mobile-node-validator">✓</span>}
+                        {node.nodeName || 'Unnamed'}
+                      </span>
+                      <span className="mobile-node-id">{node.nodeId.slice(0, 8)}...</span>
+                    </div>
+                    <div className="mobile-node-stats">
+                      <span className="mobile-node-peers">{node.peersCount}</span>
+                      <span className="mobile-node-fin">#{node.finalizedBlockHeight}</span>
+                    </div>
+                  </button>
+                );
+              })}
               {sortedNodes.length === 0 && (
                 <div className="mobile-empty">
                   {searchQuery ? 'No nodes match your search' : 'Loading nodes...'}
@@ -152,10 +231,8 @@ export function MobileHome() {
           </div>
         )}
 
-        {activeView === 'map' && (
-          <div className="mobile-viz">
-            <GeographicMap />
-          </div>
+        {activeView === 'security' && (
+          <MobileSecurityView />
         )}
       </div>
 
@@ -176,11 +253,11 @@ export function MobileHome() {
           <span className="mobile-nav-label">Topology</span>
         </button>
         <button
-          className={`mobile-nav-btn ${activeView === 'map' ? 'active' : ''}`}
-          onClick={() => setActiveView('map')}
+          className={`mobile-nav-btn ${activeView === 'security' ? 'active' : ''}`}
+          onClick={() => setActiveView('security')}
         >
-          <span className="mobile-nav-icon">&#127758;</span>
-          <span className="mobile-nav-label">Map</span>
+          <span className="mobile-nav-icon">&#128737;</span>
+          <span className="mobile-nav-label">Security</span>
         </button>
       </nav>
 

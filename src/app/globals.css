@@ -3144,6 +3144,260 @@
 }
 
 /* ============================================
+   MOBILE LIST SORTABLE HEADERS
+   ============================================ */
+
+.mobile-list-headers {
+  display: flex;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--bb-border);
+  background: var(--bb-panel);
+}
+
+.mobile-list-header {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--bb-gray);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mobile-list-header:first-child {
+  flex: 1;
+  text-align: left;
+  padding-left: 0;
+}
+
+.mobile-list-header.active {
+  color: var(--bb-orange);
+}
+
+.mobile-node-validator {
+  color: var(--bb-magenta);
+  margin-right: 4px;
+}
+
+.mobile-node-fin {
+  font-size: 10px;
+  color: var(--bb-gray);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================
+   MOBILE SECURITY VIEW (Attack Surface)
+   ============================================ */
+
+.mobile-security {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mobile-security-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--bb-gray);
+  font-size: 11px;
+}
+
+.mobile-security-stats {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-security-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--bb-panel);
+  border: 1px solid var(--bb-border);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.mobile-security-stat.active {
+  border-color: var(--bb-orange);
+  background: rgba(255, 136, 0, 0.1);
+}
+
+.mobile-security-stat-emoji {
+  font-size: 12px;
+}
+
+.mobile-security-stat-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--bb-white);
+}
+
+.mobile-security-stat-label {
+  font-size: 9px;
+  color: var(--bb-gray);
+  letter-spacing: 0.06em;
+}
+
+.mobile-security-error {
+  padding: 8px 12px;
+  background: rgba(255, 0, 0, 0.1);
+  color: var(--bb-red);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.mobile-security-filters {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-security-filter {
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  background: var(--bb-panel);
+  border: 1px solid var(--bb-border);
+  color: var(--bb-gray);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.mobile-security-filter.active {
+  background: var(--bb-cyan);
+  color: var(--bb-black);
+  border-color: var(--bb-cyan);
+}
+
+.mobile-security-search {
+  padding: 0 12px 8px;
+  flex-shrink: 0;
+}
+
+.mobile-security-search input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  background: var(--bb-panel);
+  border: 1px solid var(--bb-border);
+  color: var(--bb-white);
+  font-family: inherit;
+}
+
+.mobile-security-search input:focus {
+  outline: none;
+  border-color: var(--bb-orange);
+}
+
+.mobile-security-search input::placeholder {
+  color: var(--bb-gray);
+}
+
+.mobile-security-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-security-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--bb-border);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.mobile-security-item:active {
+  background: var(--bb-panel);
+}
+
+.mobile-security-item-row1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-security-item-risk {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.mobile-security-item-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bb-cyan);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-security-item-ip {
+  font-size: 10px;
+  color: var(--bb-gray);
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+.mobile-security-item-row2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 22px;
+}
+
+.mobile-security-item-validator {
+  color: var(--bb-magenta);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mobile-security-item-ports {
+  font-size: 9px;
+  color: var(--bb-gray);
+  flex: 1;
+}
+
+.mobile-security-item-cve {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--bb-red);
+}
+
+.mobile-security-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: var(--bb-gray);
+  font-size: 11px;
+}
+
+/* ============================================
    TOPOLOGY ANALYSIS BAR
    Collapsible overlay for graph metrics
    ============================================ */
