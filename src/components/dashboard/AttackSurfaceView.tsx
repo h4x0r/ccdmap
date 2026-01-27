@@ -2,22 +2,48 @@
 
 import { useMemo, useState } from 'react';
 import { useAttackSurface, PORT_CATEGORIES, type AttackSurfaceNode } from '@/hooks/useAttackSurface';
-import { CopyableTooltip } from '@/components/ui/CopyableTooltip';
+import { useAppStore } from '@/hooks/useAppStore';
 
 type FilterMode = 'all' | 'validators' | 'withIp' | 'withoutIp';
 type RiskFilter = 'all' | 'critical' | 'high' | 'medium' | 'low' | 'unknown';
+type SortColumn = 'risk' | 'node' | 'ip' | 'vulns';
+type SortDirection = 'asc' | 'desc';
 
 /**
  * Attack Surface view showing nodes, IPs, and open ports discovered via OSINT
  */
 export function AttackSurfaceView() {
   const { nodes, stats, isLoading } = useAttackSurface();
+  const { selectNode } = useAppStore();
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNode, setSelectedNode] = useState<AttackSurfaceNode | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn>('risk');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Filter nodes
+  // Sort handler
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Risk level numeric mapping for sorting
+  const riskLevelValue = (level: string): number => {
+    switch (level) {
+      case 'critical': return 4;
+      case 'high': return 3;
+      case 'medium': return 2;
+      case 'low': return 1;
+      case 'unknown': return 0;
+      default: return 0;
+    }
+  };
+
+  // Filter and sort nodes
   const filteredNodes = useMemo(() => {
     let filtered = nodes;
 
@@ -45,8 +71,32 @@ export function AttackSurfaceView() {
       );
     }
 
-    return filtered;
-  }, [nodes, filterMode, riskFilter, searchTerm]);
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortColumn) {
+        case 'risk':
+          comparison = riskLevelValue(a.riskLevel) - riskLevelValue(b.riskLevel);
+          break;
+        case 'node':
+          comparison = a.nodeName.localeCompare(b.nodeName);
+          break;
+        case 'ip':
+          const ipA = a.ipAddress || '';
+          const ipB = b.ipAddress || '';
+          comparison = ipA.localeCompare(ipB);
+          break;
+        case 'vulns':
+          comparison = a.osintVulns.length - b.osintVulns.length;
+          break;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
+  }, [nodes, filterMode, riskFilter, searchTerm, sortColumn, sortDirection]);
 
   if (isLoading) {
     return (
@@ -146,23 +196,29 @@ export function AttackSurfaceView() {
         />
       </div>
 
-      {/* Main content area with split view */}
-      <div className="flex-1 flex min-h-0">
-        {/* Nodes table */}
-        <div className="flex-1 overflow-auto">
-          <table className="bb-table w-full">
-            <thead className="sticky top-0 bg-[var(--bb-panel-bg)] z-10">
-              <tr>
-                <th className="text-left">RISK</th>
-                <th className="text-left">NODE</th>
-                <th className="text-left">IP:PORT</th>
-                <th className="text-center">8888</th>
-                <th className="text-center">20000</th>
-                <th className="text-center">gRPC</th>
-                <th className="text-center">OTHER</th>
-                <th className="text-center">VULNS</th>
-              </tr>
-            </thead>
+      {/* Main content area */}
+      <div className="flex-1 overflow-auto">
+        <table className="bb-table w-full">
+          <thead className="sticky top-0 bg-[var(--bb-panel-bg)] z-10">
+            <tr>
+              <th className="text-left cursor-pointer" onClick={() => handleSort('risk')}>
+                RISK {sortColumn === 'risk' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="text-left cursor-pointer" onClick={() => handleSort('node')}>
+                NODE {sortColumn === 'node' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="text-left cursor-pointer" onClick={() => handleSort('ip')}>
+                IP:PORT {sortColumn === 'ip' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="text-center">8888</th>
+              <th className="text-center">20000</th>
+              <th className="text-center">gRPC</th>
+              <th className="text-center">OTHER</th>
+              <th className="text-center cursor-pointer" onClick={() => handleSort('vulns')}>
+                CVE {sortColumn === 'vulns' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+            </tr>
+          </thead>
             <tbody>
               {filteredNodes.map((node) => {
                 const riskColor =
@@ -175,8 +231,8 @@ export function AttackSurfaceView() {
                 return (
                   <tr
                     key={node.nodeId}
-                    onClick={() => setSelectedNode(node)}
-                    className={`cursor-pointer hover:bg-[var(--bb-panel-bg)] ${selectedNode?.nodeId === node.nodeId ? 'bg-[var(--bb-panel-bg)]' : ''}`}
+                    onClick={() => selectNode(node.nodeId)}
+                    className="cursor-pointer hover:bg-[var(--bb-panel-bg)]"
                   >
                     <td style={{ color: riskColor }}>
                       {node.riskLevel === 'critical' && '🔴'}
@@ -227,177 +283,11 @@ export function AttackSurfaceView() {
                 );
               })}
             </tbody>
-          </table>
+        </table>
 
-          {filteredNodes.length === 0 && (
-            <div className="flex items-center justify-center h-64">
-              <span className="text-[var(--bb-gray)]">No nodes match the current filters</span>
-            </div>
-          )}
-        </div>
-
-        {/* Detail panel */}
-        {selectedNode && (
-          <div className="w-96 border-l border-[var(--bb-border)] overflow-auto">
-            <div className="bb-panel">
-              <div className="bb-panel-header dark flex items-center justify-between">
-                <span>NODE DETAILS</span>
-                <button
-                  onClick={() => setSelectedNode(null)}
-                  className="text-[var(--bb-gray)] hover:text-[var(--bb-text)]"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="bb-panel-body">
-                <div className="bb-forensic">
-                  {/* Identity */}
-                  <div className="bb-forensic-section">
-                    <div className="bb-forensic-section-header">IDENTITY</div>
-                    <div className="bb-forensic-row">
-                      <span className="bb-forensic-label">Node ID</span>
-                      <CopyableTooltip
-                        value={selectedNode.nodeId}
-                        displayValue={`${selectedNode.nodeId.slice(0, 24)}...`}
-                        className="bb-forensic-value mono"
-                      />
-                    </div>
-                    <div className="bb-forensic-row">
-                      <span className="bb-forensic-label">Name</span>
-                      <span className="bb-forensic-value">{selectedNode.nodeName}</span>
-                    </div>
-                    <div className="bb-forensic-row">
-                      <span className="bb-forensic-label">Type</span>
-                      <span className={`bb-forensic-value ${selectedNode.isValidator ? 'text-[var(--bb-magenta)]' : ''}`}>
-                        {selectedNode.isValidator ? 'VALIDATOR' : 'REGULAR'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Network */}
-                  {selectedNode.ipAddress && (
-                    <div className="bb-forensic-section">
-                      <div className="bb-forensic-section-header">NETWORK</div>
-                      <div className="bb-forensic-row">
-                        <span className="bb-forensic-label">IP Address</span>
-                        <CopyableTooltip
-                          value={selectedNode.ipAddress}
-                          displayValue={selectedNode.ipAddress}
-                          className="bb-forensic-value mono"
-                        />
-                      </div>
-                      <div className="bb-forensic-row">
-                        <span className="bb-forensic-label">Port</span>
-                        <span className="bb-forensic-value">{selectedNode.port}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Risk Assessment */}
-                  <div className="bb-forensic-section">
-                    <div className="bb-forensic-section-header">RISK ASSESSMENT</div>
-                    <div className="bb-forensic-row">
-                      <span className="bb-forensic-label">Risk Level</span>
-                      <span
-                        className="bb-forensic-value font-bold"
-                        style={{
-                          color:
-                            selectedNode.riskLevel === 'critical' ? 'var(--bb-red)'
-                            : selectedNode.riskLevel === 'high' ? 'var(--bb-amber)'
-                            : selectedNode.riskLevel === 'medium' ? 'var(--bb-amber)'
-                            : selectedNode.riskLevel === 'low' ? 'var(--bb-green)'
-                            : 'var(--bb-gray)',
-                        }}
-                      >
-                        {selectedNode.riskLevel.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="bb-forensic-row">
-                      <span className="bb-forensic-label">Reputation</span>
-                      <span className="bb-forensic-value">{selectedNode.osintReputation.toUpperCase()}</span>
-                    </div>
-                    {selectedNode.osintLastScan && (
-                      <div className="bb-forensic-row">
-                        <span className="bb-forensic-label">Last Scan</span>
-                        <span className="bb-forensic-value text-xs">{new Date(selectedNode.osintLastScan).toLocaleString()}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Open Ports */}
-                  {selectedNode.osintPorts.length > 0 && (
-                    <div className="bb-forensic-section">
-                      <div className="bb-forensic-section-header">OPEN PORTS ({selectedNode.osintPorts.length})</div>
-                      <div className="bb-forensic-row">
-                        <span className="bb-forensic-label">Peering (8888)</span>
-                        <span className={`bb-forensic-value ${selectedNode.hasPeeringPort ? 'text-[var(--bb-cyan)]' : 'text-[var(--bb-gray)]'}`}>
-                          {selectedNode.hasPeeringPort ? 'OPEN' : 'CLOSED'}
-                        </span>
-                      </div>
-                      <div className="bb-forensic-row">
-                        <span className="bb-forensic-label">gRPC Default (20000)</span>
-                        <span className={`bb-forensic-value ${selectedNode.hasGrpcDefault ? 'text-[var(--bb-cyan)]' : 'text-[var(--bb-gray)]'}`}>
-                          {selectedNode.hasGrpcDefault ? 'OPEN' : 'CLOSED'}
-                        </span>
-                      </div>
-                      {selectedNode.hasGrpcCommon.length > 0 && (
-                        <div className="bb-forensic-row">
-                          <span className="bb-forensic-label">gRPC Common</span>
-                          <span className="bb-forensic-value text-[var(--bb-cyan)]">{selectedNode.hasGrpcCommon.join(', ')}</span>
-                        </div>
-                      )}
-                      {selectedNode.hasOtherPorts.length > 0 && (
-                        <div className="bb-forensic-row">
-                          <span className="bb-forensic-label">Other Ports</span>
-                          <span className="bb-forensic-value text-[var(--bb-amber)]">
-                            {selectedNode.hasOtherPorts.slice(0, 10).join(', ')}
-                            {selectedNode.hasOtherPorts.length > 10 && ` +${selectedNode.hasOtherPorts.length - 10} more`}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Vulnerabilities */}
-                  {selectedNode.osintVulns.length > 0 && (
-                    <div className="bb-forensic-section">
-                      <div className="bb-forensic-section-header text-[var(--bb-red)]">
-                        VULNERABILITIES ({selectedNode.osintVulns.length})
-                      </div>
-                      <div className="space-y-1">
-                        {selectedNode.osintVulns.slice(0, 10).map((vuln, i) => (
-                          <div key={i} className="text-xs font-mono text-[var(--bb-red)]">
-                            • {vuln}
-                          </div>
-                        ))}
-                        {selectedNode.osintVulns.length > 10 && (
-                          <div className="text-xs text-[var(--bb-gray)] italic">
-                            +{selectedNode.osintVulns.length - 10} more...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tags */}
-                  {selectedNode.osintTags.length > 0 && (
-                    <div className="bb-forensic-section">
-                      <div className="bb-forensic-section-header">TAGS</div>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedNode.osintTags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-1 text-xs bg-[var(--bb-panel-bg)] border border-[var(--bb-border)] text-[var(--bb-gray)]"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+        {filteredNodes.length === 0 && (
+          <div className="flex items-center justify-center h-64">
+            <span className="text-[var(--bb-gray)]">No nodes match the current filters</span>
           </div>
         )}
       </div>

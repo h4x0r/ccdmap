@@ -27,6 +27,7 @@ import { OsintHoverCard, OsintDrawer } from '@/components/osint';
 import { TransactionsView } from '@/components/dashboard/TransactionsView';
 import { BlocksView } from '@/components/dashboard/BlocksView';
 import { AttackSurfaceView } from '@/components/dashboard/AttackSurfaceView';
+import { useAttackSurface } from '@/hooks/useAttackSurface';
 
 // Dynamic imports for heavy map components
 const TopologyGraph = dynamic(
@@ -89,6 +90,7 @@ function DesktopHome() {
   const { peers } = usePeers();
   const { data: validatorsData } = useValidators();
   const { playAcquisitionSequence } = useAudio();
+  const { getNodeAttackSurface } = useAttackSurface();
 
   // Find selected node from nodes array
   const selectedNode = nodes?.find(n => n.nodeId === selectedNodeId) ?? null;
@@ -672,6 +674,125 @@ function DesktopHome() {
                       <span className="bb-forensic-value text-[var(--bb-magenta)]">#{selectedNode.bestBlockBakerId ?? 'N/A'}</span>
                     </div>
                   </div>
+
+                  {/* Attack Surface - show when in Attack Surface view */}
+                  {currentView === 'attack-surface' && (() => {
+                    const attackSurface = getNodeAttackSurface(selectedNode.nodeId);
+                    if (!attackSurface) return null;
+
+                    return (
+                      <>
+                        {/* Risk Assessment */}
+                        <div className="bb-forensic-section">
+                          <div className="bb-forensic-section-header">RISK ASSESSMENT</div>
+                          <div className="bb-forensic-row">
+                            <span className="bb-forensic-label">Risk Level</span>
+                            <span
+                              className="bb-forensic-value font-bold"
+                              style={{
+                                color:
+                                  attackSurface.riskLevel === 'critical' ? 'var(--bb-red)'
+                                  : attackSurface.riskLevel === 'high' ? 'var(--bb-amber)'
+                                  : attackSurface.riskLevel === 'medium' ? 'var(--bb-amber)'
+                                  : attackSurface.riskLevel === 'low' ? 'var(--bb-green)'
+                                  : 'var(--bb-gray)',
+                              }}
+                            >
+                              {attackSurface.riskLevel.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="bb-forensic-row">
+                            <span className="bb-forensic-label">Reputation</span>
+                            <span className="bb-forensic-value">{attackSurface.osintReputation.toUpperCase()}</span>
+                          </div>
+                          {attackSurface.osintLastScan && (
+                            <div className="bb-forensic-row">
+                              <span className="bb-forensic-label">Last OSINT Scan</span>
+                              <span className="bb-forensic-value text-xs">
+                                {new Date(attackSurface.osintLastScan).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Open Ports */}
+                        {attackSurface.osintPorts.length > 0 && (
+                          <div className="bb-forensic-section">
+                            <div className="bb-forensic-section-header">
+                              OPEN PORTS ({attackSurface.osintPorts.length})
+                            </div>
+                            <div className="bb-forensic-row">
+                              <span className="bb-forensic-label">Peering (8888)</span>
+                              <span className={`bb-forensic-value ${attackSurface.hasPeeringPort ? 'text-[var(--bb-cyan)]' : 'text-[var(--bb-gray)]'}`}>
+                                {attackSurface.hasPeeringPort ? 'OPEN' : 'CLOSED'}
+                              </span>
+                            </div>
+                            <div className="bb-forensic-row">
+                              <span className="bb-forensic-label">gRPC Default (20000)</span>
+                              <span className={`bb-forensic-value ${attackSurface.hasGrpcDefault ? 'text-[var(--bb-cyan)]' : 'text-[var(--bb-gray)]'}`}>
+                                {attackSurface.hasGrpcDefault ? 'OPEN' : 'CLOSED'}
+                              </span>
+                            </div>
+                            {attackSurface.hasGrpcCommon.length > 0 && (
+                              <div className="bb-forensic-row">
+                                <span className="bb-forensic-label">gRPC Common</span>
+                                <span className="bb-forensic-value text-[var(--bb-cyan)]">
+                                  {attackSurface.hasGrpcCommon.join(', ')}
+                                </span>
+                              </div>
+                            )}
+                            {attackSurface.hasOtherPorts.length > 0 && (
+                              <div className="bb-forensic-row">
+                                <span className="bb-forensic-label">Other Ports</span>
+                                <span className="bb-forensic-value text-[var(--bb-amber)]">
+                                  {attackSurface.hasOtherPorts.slice(0, 10).join(', ')}
+                                  {attackSurface.hasOtherPorts.length > 10 && ` +${attackSurface.hasOtherPorts.length - 10} more`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* CVEs / Vulnerabilities */}
+                        {attackSurface.osintVulns.length > 0 && (
+                          <div className="bb-forensic-section">
+                            <div className="bb-forensic-section-header text-[var(--bb-red)]">
+                              CVE / VULNERABILITIES ({attackSurface.osintVulns.length})
+                            </div>
+                            <div className="space-y-1">
+                              {attackSurface.osintVulns.slice(0, 15).map((vuln, i) => (
+                                <div key={i} className="text-xs font-mono text-[var(--bb-red)]">
+                                  • {vuln}
+                                </div>
+                              ))}
+                              {attackSurface.osintVulns.length > 15 && (
+                                <div className="text-xs text-[var(--bb-gray)] italic">
+                                  +{attackSurface.osintVulns.length - 15} more CVEs...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* OSINT Tags */}
+                        {attackSurface.osintTags.length > 0 && (
+                          <div className="bb-forensic-section">
+                            <div className="bb-forensic-section-header">OSINT TAGS</div>
+                            <div className="flex flex-wrap gap-1">
+                              {attackSurface.osintTags.map((tag, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-1 text-xs bg-[var(--bb-panel-bg)] border border-[var(--bb-border)] text-[var(--bb-gray)]"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {/* Connected Peers */}
                   {selectedNode.peersList.length > 0 && (

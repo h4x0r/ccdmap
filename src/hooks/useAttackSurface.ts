@@ -235,9 +235,15 @@ export function useAttackSurface() {
     };
   }, [attackSurfaceNodes]);
 
+  // Function to get attack surface data for a specific node
+  const getNodeAttackSurface = (nodeId: string): AttackSurfaceNode | null => {
+    return attackSurfaceNodes.find(n => n.nodeId === nodeId) ?? null;
+  };
+
   return {
     nodes: attackSurfaceNodes,
     stats,
     isLoading: nodesLoading || peersLoading || osintLoading,
+    getNodeAttackSurface,
   };
 }
