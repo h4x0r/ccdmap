@@ -733,11 +733,11 @@ function DesktopHome() {
                                 {attackSurface.hasGrpcDefault ? 'OPEN' : 'CLOSED'}
                               </span>
                             </div>
-                            {attackSurface.hasGrpcCommon.length > 0 && (
+                            {attackSurface.hasGrpcOther.length > 0 && (
                               <div className="bb-forensic-row">
-                                <span className="bb-forensic-label">gRPC Common</span>
+                                <span className="bb-forensic-label">gRPC Other</span>
                                 <span className="bb-forensic-value text-[var(--bb-cyan)]">
-                                  {attackSurface.hasGrpcCommon.join(', ')}
+                                  {attackSurface.hasGrpcOther.join(', ')}
                                 </span>
                               </div>
                             )}

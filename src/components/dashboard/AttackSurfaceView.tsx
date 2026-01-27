@@ -265,7 +265,7 @@ export function AttackSurfaceView() {
               </th>
               <th className="text-center">8888</th>
               <th className="text-center">20000</th>
-              <th className="text-center">gRPC</th>
+              <th className="text-center">Other gRPC</th>
               <th className="text-center">OTHER</th>
               <th className="text-center cursor-pointer" onClick={() => handleSort('vulns')}>
                 CVE {sortColumn === 'vulns' && (sortDirection === 'asc' ? '▲' : '▼')}
@@ -312,8 +312,8 @@ export function AttackSurfaceView() {
                       {node.hasGrpcDefault ? <span className="text-[var(--bb-cyan)]">✓</span> : <span className="text-[var(--bb-gray)]">-</span>}
                     </td>
                     <td className="text-center">
-                      {node.hasGrpcCommon.length > 0 ? (
-                        <span className="text-[var(--bb-cyan)]">{node.hasGrpcCommon.join(',')}</span>
+                      {node.hasGrpcOther.length > 0 ? (
+                        <span className="text-[var(--bb-cyan)]">{node.hasGrpcOther.join(',')}</span>
                       ) : (
                         <span className="text-[var(--bb-gray)]">-</span>
                       )}
@@ -347,11 +347,11 @@ export function AttackSurfaceView() {
 
       {/* Footer with legend */}
       <div className="border-t border-[var(--bb-border)] px-4 py-2 text-xs text-[var(--bb-gray)]">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
           <span>LEGEND:</span>
-          <span>8888 = Peering Port</span>
+          <span>8888 = Peering</span>
           <span>20000 = Default gRPC</span>
-          <span>10000/10001/11000 = Common gRPC</span>
+          <span>Other gRPC = 10000/10001/11000 (Concordium), 50051 (std), 8080/8443 (web), 9000/9090/9999 (common)</span>
           <span className="text-[var(--bb-amber)]">⚠️ Data from OSINT only - no active scanning</span>
         </div>
       </div>

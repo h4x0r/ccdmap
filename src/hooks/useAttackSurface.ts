@@ -11,8 +11,17 @@ export const PORT_CATEGORIES = {
   // Critical Concordium ports
   PEERING: 8888,
   GRPC_DEFAULT: 20000,
-  // Common gRPC ports
-  GRPC_COMMON: [10000, 10001, 11000],
+  // Other gRPC ports (Concordium alternatives + general gRPC conventions)
+  GRPC_OTHER: [
+    // Concordium alternative gRPC ports
+    10000, 10001, 11000,
+    // Standard gRPC default port
+    50051,
+    // gRPC-web common ports
+    8080, 8443,
+    // Common gRPC range (9000-9999 representatives)
+    9000, 9090, 9999,
+  ],
 } as const;
 
 export interface AttackSurfaceNode {
@@ -32,8 +41,8 @@ export interface AttackSurfaceNode {
   // Port categorization
   hasPeeringPort: boolean;      // 8888
   hasGrpcDefault: boolean;       // 20000
-  hasGrpcCommon: number[];       // 10000, 10001, 11000
-  hasOtherPorts: number[];       // Any other discovered ports
+  hasGrpcOther: number[];        // Other gRPC ports (10000, 10001, 11000, 50051, 8080, 8443, 9000, 9090, 9999)
+  hasOtherPorts: number[];       // Any other discovered ports (non-gRPC)
 
   // Risk assessment
   riskLevel: 'low' | 'medium' | 'high' | 'critical' | 'unknown';
@@ -168,13 +177,13 @@ export function useAttackSurface() {
       // Categorize ports
       const hasPeeringPort = osintPorts.includes(PORT_CATEGORIES.PEERING);
       const hasGrpcDefault = osintPorts.includes(PORT_CATEGORIES.GRPC_DEFAULT);
-      const hasGrpcCommon = PORT_CATEGORIES.GRPC_COMMON.filter(p => osintPorts.includes(p));
+      const hasGrpcOther = PORT_CATEGORIES.GRPC_OTHER.filter(p => osintPorts.includes(p));
 
-      // Other ports (excluding known Concordium ports)
+      // Other ports (excluding known gRPC ports)
       const knownPorts = new Set<number>([
         PORT_CATEGORIES.PEERING,
         PORT_CATEGORIES.GRPC_DEFAULT,
-        ...PORT_CATEGORIES.GRPC_COMMON,
+        ...PORT_CATEGORIES.GRPC_OTHER,
       ]);
       const hasOtherPorts = osintPorts.filter((p: number) => !knownPorts.has(p));
 
@@ -194,7 +203,7 @@ export function useAttackSurface() {
         osintLastScan,
         hasPeeringPort,
         hasGrpcDefault,
-        hasGrpcCommon,
+        hasGrpcOther,
         hasOtherPorts,
         riskLevel,
       };
@@ -221,7 +230,7 @@ export function useAttackSurface() {
     const portExposure = {
       peering: attackSurfaceNodes.filter(n => n.hasPeeringPort).length,
       grpcDefault: attackSurfaceNodes.filter(n => n.hasGrpcDefault).length,
-      grpcCommon: attackSurfaceNodes.filter(n => n.hasGrpcCommon.length > 0).length,
+      grpcOther: attackSurfaceNodes.filter(n => n.hasGrpcOther.length > 0).length,
     };
 
     return {
