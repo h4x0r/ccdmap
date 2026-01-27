@@ -3,7 +3,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { compareIpAddresses, sortAttackSurfaceNodes, filterAttackSurfaceNodes } from './sorting';
+import {
+  compareIpAddresses,
+  sortAttackSurfaceNodes,
+  filterAttackSurfaceNodes,
+  getNodeSortIndicator,
+  getNextNodeSortStage,
+} from './sorting';
 import type { AttackSurfaceNode } from './types';
 
 describe('compareIpAddresses', () => {
@@ -283,6 +289,147 @@ describe('sortAttackSurfaceNodes', () => {
 
     expect(nodes[0].nodeId).toBe(originalFirstId);
   });
+
+  describe('port8888 column sorting', () => {
+    it('sorts nodes with peering port first (desc)', () => {
+      const nodes = [
+        createNode({ nodeId: '1', hasPeeringPort: false }),
+        createNode({ nodeId: '2', hasPeeringPort: true }),
+        createNode({ nodeId: '3', hasPeeringPort: false }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'port8888',
+        direction: 'desc',
+      });
+
+      expect(sorted[0].hasPeeringPort).toBe(true);
+      expect(sorted[1].hasPeeringPort).toBe(false);
+      expect(sorted[2].hasPeeringPort).toBe(false);
+    });
+
+    it('sorts nodes without peering port first (asc)', () => {
+      const nodes = [
+        createNode({ nodeId: '1', hasPeeringPort: true }),
+        createNode({ nodeId: '2', hasPeeringPort: false }),
+        createNode({ nodeId: '3', hasPeeringPort: true }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'port8888',
+        direction: 'asc',
+      });
+
+      expect(sorted[0].hasPeeringPort).toBe(false);
+      expect(sorted[1].hasPeeringPort).toBe(true);
+      expect(sorted[2].hasPeeringPort).toBe(true);
+    });
+  });
+
+  describe('port20000 column sorting', () => {
+    it('sorts nodes with default gRPC port first (desc)', () => {
+      const nodes = [
+        createNode({ nodeId: '1', hasGrpcDefault: false }),
+        createNode({ nodeId: '2', hasGrpcDefault: true }),
+        createNode({ nodeId: '3', hasGrpcDefault: false }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'port20000',
+        direction: 'desc',
+      });
+
+      expect(sorted[0].hasGrpcDefault).toBe(true);
+      expect(sorted[1].hasGrpcDefault).toBe(false);
+    });
+
+    it('sorts nodes without default gRPC first (asc)', () => {
+      const nodes = [
+        createNode({ nodeId: '1', hasGrpcDefault: true }),
+        createNode({ nodeId: '2', hasGrpcDefault: false }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'port20000',
+        direction: 'asc',
+      });
+
+      expect(sorted[0].hasGrpcDefault).toBe(false);
+      expect(sorted[1].hasGrpcDefault).toBe(true);
+    });
+  });
+
+  describe('portGrpcOther column sorting', () => {
+    it('sorts by count of other gRPC ports (desc)', () => {
+      const nodes = [
+        createNode({ nodeId: '1', hasGrpcOther: [10000] }),
+        createNode({ nodeId: '2', hasGrpcOther: [10000, 10001, 11000] }),
+        createNode({ nodeId: '3', hasGrpcOther: [] }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'portGrpcOther',
+        direction: 'desc',
+      });
+
+      expect(sorted[0].hasGrpcOther.length).toBe(3);
+      expect(sorted[1].hasGrpcOther.length).toBe(1);
+      expect(sorted[2].hasGrpcOther.length).toBe(0);
+    });
+
+    it('sorts by count of other gRPC ports (asc)', () => {
+      const nodes = [
+        createNode({ nodeId: '1', hasGrpcOther: [10000, 10001] }),
+        createNode({ nodeId: '2', hasGrpcOther: [] }),
+        createNode({ nodeId: '3', hasGrpcOther: [10000] }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'portGrpcOther',
+        direction: 'asc',
+      });
+
+      expect(sorted[0].hasGrpcOther.length).toBe(0);
+      expect(sorted[1].hasGrpcOther.length).toBe(1);
+      expect(sorted[2].hasGrpcOther.length).toBe(2);
+    });
+  });
+
+  describe('portOther column sorting', () => {
+    it('sorts by count of other exposed ports (desc)', () => {
+      const nodes = [
+        createNode({ nodeId: '1', hasOtherPorts: [22] }),
+        createNode({ nodeId: '2', hasOtherPorts: [22, 80, 443, 3306] }),
+        createNode({ nodeId: '3', hasOtherPorts: [] }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'portOther',
+        direction: 'desc',
+      });
+
+      expect(sorted[0].hasOtherPorts.length).toBe(4);
+      expect(sorted[1].hasOtherPorts.length).toBe(1);
+      expect(sorted[2].hasOtherPorts.length).toBe(0);
+    });
+
+    it('sorts by count of other exposed ports (asc)', () => {
+      const nodes = [
+        createNode({ nodeId: '1', hasOtherPorts: [22, 80] }),
+        createNode({ nodeId: '2', hasOtherPorts: [] }),
+        createNode({ nodeId: '3', hasOtherPorts: [22, 80, 443] }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'portOther',
+        direction: 'asc',
+      });
+
+      expect(sorted[0].hasOtherPorts.length).toBe(0);
+      expect(sorted[1].hasOtherPorts.length).toBe(2);
+      expect(sorted[2].hasOtherPorts.length).toBe(3);
+    });
+  });
 });
 
 describe('filterAttackSurfaceNodes', () => {
@@ -400,5 +547,32 @@ describe('filterAttackSurfaceNodes', () => {
       expect(result[0].riskLevel).toBe('high');
       expect(result[0].ipAddress).toContain('10.0');
     });
+  });
+});
+
+describe('getNodeSortIndicator', () => {
+  it('returns ▲ for stage 1 (A-Z)', () => {
+    expect(getNodeSortIndicator(1)).toBe('▲');
+  });
+
+  it('returns ▼ for stage 2 (Z-A)', () => {
+    expect(getNodeSortIndicator(2)).toBe('▼');
+  });
+
+  it('returns ✓▲ for stage 3 (validators first, A-Z)', () => {
+    expect(getNodeSortIndicator(3)).toBe('✓▲');
+  });
+
+  it('returns ✓▼ for stage 4 (validators first, Z-A)', () => {
+    expect(getNodeSortIndicator(4)).toBe('✓▼');
+  });
+});
+
+describe('getNextNodeSortStage', () => {
+  it('cycles 1 → 2 → 3 → 4 → 1', () => {
+    expect(getNextNodeSortStage(1)).toBe(2);
+    expect(getNextNodeSortStage(2)).toBe(3);
+    expect(getNextNodeSortStage(3)).toBe(4);
+    expect(getNextNodeSortStage(4)).toBe(1);
   });
 });
