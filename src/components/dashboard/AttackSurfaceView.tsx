@@ -155,7 +155,7 @@ export function AttackSurfaceView() {
               <tr>
                 <th className="text-left">RISK</th>
                 <th className="text-left">NODE</th>
-                <th className="text-left">IP ADDRESS</th>
+                <th className="text-left">IP:PORT</th>
                 <th className="text-center">8888</th>
                 <th className="text-center">20000</th>
                 <th className="text-center">gRPC</th>
