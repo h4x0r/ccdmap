@@ -127,6 +127,7 @@ function DesktopHome() {
   const [commandInput, setCommandInput] = useState('');
   const [sortColumn, setSortColumn] = useState<'name' | 'peers' | 'fin' | 'status'>('peers');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [validatorsFirst, setValidatorsFirst] = useState(true);
   const [osintDrawerIp, setOsintDrawerIp] = useState<string | null>(null);
   const commandInputRef = useRef<HTMLInputElement>(null);
 
@@ -171,13 +172,15 @@ function DesktopHome() {
         )
       : nodes;
 
-    // Sort the filtered results - bakers always at top, then by selected column
+    // Sort the filtered results - optionally bakers at top, then by selected column
     return [...filtered].sort((a, b) => {
-      // Bakers always come first
-      const aIsBaker = a.consensusBakerId !== null;
-      const bIsBaker = b.consensusBakerId !== null;
-      if (aIsBaker && !bIsBaker) return -1;
-      if (!aIsBaker && bIsBaker) return 1;
+      // Validators first when enabled
+      if (validatorsFirst) {
+        const aIsBaker = a.consensusBakerId !== null;
+        const bIsBaker = b.consensusBakerId !== null;
+        if (aIsBaker && !bIsBaker) return -1;
+        if (!aIsBaker && bIsBaker) return 1;
+      }
 
       // Then sort by selected column
       let comparison = 0;
@@ -199,7 +202,7 @@ function DesktopHome() {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [nodes, commandInput, sortColumn, sortDirection]);
+  }, [nodes, commandInput, sortColumn, sortDirection, validatorsFirst]);
 
   // Calculate max height for health comparison in Node Explorer
   const maxHeight = useMemo(() => {
@@ -1005,11 +1008,24 @@ function DesktopHome() {
         {/* ===== RIGHT COLUMN - NODE LIST ===== */}
         <div className="bb-grid-cell flex flex-col" >
           <div className="bb-panel flex-1 flex flex-col">
-            <div className="bb-panel-header dark">
-              Node Explorer
-              <span className="text-[var(--bb-gray)] font-normal ml-2">
-                ({commandInput ? `${filteredAndSortedNodes.length}/` : ''}{nodes?.length ?? 0})
-              </span>
+            <div className="bb-panel-header dark flex items-center justify-between">
+              <div>
+                Node Explorer
+                <span className="text-[var(--bb-gray)] font-normal ml-2">
+                  ({commandInput ? `${filteredAndSortedNodes.length}/` : ''}{nodes?.length ?? 0})
+                </span>
+              </div>
+              <button
+                onClick={() => setValidatorsFirst(!validatorsFirst)}
+                title="When enabled, validators are always shown at the top regardless of sort column"
+                className={`px-2 py-1 text-[10px] ${
+                  validatorsFirst
+                    ? 'bg-[var(--bb-magenta)] text-black'
+                    : 'bg-[var(--bb-panel-bg)] text-[var(--bb-gray)]'
+                }`}
+              >
+                {validatorsFirst ? '✓ ' : ''}VALIDATORS FIRST
+              </button>
             </div>
             <div className="bb-panel-body no-padding flex-1 overflow-auto">
               <table className="bb-table">
