@@ -29,12 +29,11 @@ export function AttackSurfaceView() {
     searchTerm,
     sortColumn,
     sortDirection,
-    validatorsFirst,
+    nodeSortStage,
     setFilterMode,
     setRiskFilter,
     setSearchTerm,
     toggleSort,
-    toggleValidatorsFirst,
   } = useAttackSurfaceFilters();
 
   // Apply filtering and sorting using pure functions
@@ -43,9 +42,9 @@ export function AttackSurfaceView() {
     return sortAttackSurfaceNodes(filtered, {
       column: sortColumn,
       direction: sortDirection,
-      validatorsFirst,
+      nodeSortStage,
     });
-  }, [nodes, filterMode, riskFilter, searchTerm, sortColumn, sortDirection, validatorsFirst]);
+  }, [nodes, filterMode, riskFilter, searchTerm, sortColumn, sortDirection, nodeSortStage]);
 
   if (isLoading) {
     return (
@@ -73,11 +72,9 @@ export function AttackSurfaceView() {
         filterMode={filterMode}
         riskFilter={riskFilter}
         searchTerm={searchTerm}
-        validatorsFirst={validatorsFirst}
         onFilterModeChange={setFilterMode}
         onRiskFilterChange={setRiskFilter}
         onSearchTermChange={setSearchTerm}
-        onToggleValidatorsFirst={toggleValidatorsFirst}
       />
 
       {/* Data table with footer legend */}
@@ -85,6 +82,7 @@ export function AttackSurfaceView() {
         nodes={filteredAndSortedNodes}
         sortColumn={sortColumn}
         sortDirection={sortDirection}
+        nodeSortStage={nodeSortStage}
         onSort={toggleSort}
         onNodeSelect={selectNode}
       />

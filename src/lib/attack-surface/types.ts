@@ -74,11 +74,21 @@ export interface AttackSurfaceNode {
 export interface SortOptions {
   column: SortColumn;
   direction: SortDirection;
-  validatorsFirst?: boolean;
+  /** For node column only: which stage of the 4-stage cycle */
+  nodeSortStage?: NodeSortStage;
 }
 
 export type SortColumn = 'risk' | 'node' | 'ip' | 'vulns';
 export type SortDirection = 'asc' | 'desc';
+
+/**
+ * Node column sort stage (4-stage cycle)
+ * 1: All A-Z
+ * 2: All Z-A
+ * 3: Validators first (A-Z), then rest (A-Z)
+ * 4: Validators first (Z-A), then rest (Z-A)
+ */
+export type NodeSortStage = 1 | 2 | 3 | 4;
 
 /**
  * Filter mode for node display

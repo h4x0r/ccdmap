@@ -5,15 +5,18 @@ import {
   assessRisk,
   formatRiskTooltip,
   getPortLegend,
+  getNodeSortIndicator,
   type AttackSurfaceNode,
   type SortColumn,
   type SortDirection,
+  type NodeSortStage,
 } from '@/lib/attack-surface';
 
 interface AttackSurfaceTableProps {
   nodes: AttackSurfaceNode[];
   sortColumn: SortColumn;
   sortDirection: SortDirection;
+  nodeSortStage: NodeSortStage;
   onSort: (column: SortColumn) => void;
   onNodeSelect: (nodeId: string) => void;
 }
@@ -39,12 +42,20 @@ export function AttackSurfaceTable({
   nodes,
   sortColumn,
   sortDirection,
+  nodeSortStage,
   onSort,
   onNodeSelect,
 }: AttackSurfaceTableProps) {
   const legend = getPortLegend();
-  const sortIndicator = (column: SortColumn) =>
-    sortColumn === column ? (sortDirection === 'asc' ? '▲' : '▼') : '';
+
+  // Sort indicator for non-node columns (simple asc/desc)
+  const sortIndicator = (column: SortColumn) => {
+    if (column === 'node') {
+      // Node column uses 4-stage indicator
+      return sortColumn === 'node' ? getNodeSortIndicator(nodeSortStage) : '';
+    }
+    return sortColumn === column ? (sortDirection === 'asc' ? '▲' : '▼') : '';
+  };
 
   return (
     <>

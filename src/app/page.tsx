@@ -127,7 +127,8 @@ function DesktopHome() {
   const [commandInput, setCommandInput] = useState('');
   const [sortColumn, setSortColumn] = useState<'name' | 'peers' | 'fin' | 'status'>('peers');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [validatorsFirst, setValidatorsFirst] = useState(true);
+  // 4-stage sort for 'name' column: 1=A-Z, 2=Z-A, 3=Validators+A-Z, 4=Validators+Z-A
+  const [nodeSortStage, setNodeSortStage] = useState<1 | 2 | 3 | 4>(3); // Default: validators first, A-Z
   const [osintDrawerIp, setOsintDrawerIp] = useState<string | null>(null);
   const commandInputRef = useRef<HTMLInputElement>(null);
 
@@ -172,24 +173,31 @@ function DesktopHome() {
         )
       : nodes;
 
-    // Sort the filtered results - optionally bakers at top, then by selected column
+    // Sort the filtered results
     return [...filtered].sort((a, b) => {
-      // Validators first when enabled
-      if (validatorsFirst) {
-        const aIsBaker = a.consensusBakerId !== null;
-        const bIsBaker = b.consensusBakerId !== null;
-        if (aIsBaker && !bIsBaker) return -1;
-        if (!aIsBaker && bIsBaker) return 1;
+      // Special handling for 'name' column: 4-stage sort
+      if (sortColumn === 'name') {
+        const validatorsFirst = nodeSortStage === 3 || nodeSortStage === 4;
+        const descending = nodeSortStage === 2 || nodeSortStage === 4;
+
+        // Validators first when in stage 3 or 4
+        if (validatorsFirst) {
+          const aIsBaker = a.consensusBakerId !== null;
+          const bIsBaker = b.consensusBakerId !== null;
+          if (aIsBaker && !bIsBaker) return -1;
+          if (!aIsBaker && bIsBaker) return 1;
+        }
+
+        // Then sort alphabetically
+        const nameA = (a.nodeName || a.nodeId).toLowerCase();
+        const nameB = (b.nodeName || b.nodeId).toLowerCase();
+        const comparison = nameA.localeCompare(nameB);
+        return descending ? -comparison : comparison;
       }
 
-      // Then sort by selected column
+      // For other columns: normal asc/desc with no validator grouping
       let comparison = 0;
       switch (sortColumn) {
-        case 'name':
-          const nameA = (a.nodeName || a.nodeId).toLowerCase();
-          const nameB = (b.nodeName || b.nodeId).toLowerCase();
-          comparison = nameA.localeCompare(nameB);
-          break;
         case 'peers':
           comparison = a.peersCount - b.peersCount;
           break;
@@ -202,7 +210,7 @@ function DesktopHome() {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [nodes, commandInput, sortColumn, sortDirection, validatorsFirst]);
+  }, [nodes, commandInput, sortColumn, sortDirection, nodeSortStage]);
 
   // Calculate max height for health comparison in Node Explorer
   const maxHeight = useMemo(() => {
@@ -211,11 +219,36 @@ function DesktopHome() {
   }, [nodes]);
 
   const handleSort = (column: 'name' | 'peers' | 'fin' | 'status') => {
+    // Special handling for 'name' column: cycle through 4 stages
+    if (column === 'name') {
+      if (sortColumn === 'name') {
+        // Already on name column, advance to next stage (1→2→3→4→1)
+        setNodeSortStage(prev => ((prev % 4) + 1) as 1 | 2 | 3 | 4);
+      } else {
+        // Switching to name column, start at stage 1
+        setSortColumn('name');
+        setNodeSortStage(1);
+      }
+      return;
+    }
+
+    // For other columns: normal asc/desc toggle
     if (sortColumn === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortColumn(column);
       setSortDirection('asc');
+    }
+  };
+
+  // Get sort indicator for Node ID column based on 4-stage sort
+  const getNodeSortIndicator = () => {
+    if (sortColumn !== 'name') return '';
+    switch (nodeSortStage) {
+      case 1: return '▲';      // A-Z
+      case 2: return '▼';      // Z-A
+      case 3: return '✓▲';     // Validators first, A-Z
+      case 4: return '✓▼';     // Validators first, Z-A
     }
   };
 
@@ -1014,31 +1047,18 @@ function DesktopHome() {
         {/* ===== RIGHT COLUMN - NODE LIST ===== */}
         <div className="bb-grid-cell flex flex-col" >
           <div className="bb-panel flex-1 flex flex-col">
-            <div className="bb-panel-header dark flex items-center justify-between">
-              <div>
-                Node Explorer
-                <span className="text-[var(--bb-gray)] font-normal ml-2">
-                  ({commandInput ? `${filteredAndSortedNodes.length}/` : ''}{nodes?.length ?? 0})
-                </span>
-              </div>
-              <button
-                onClick={() => setValidatorsFirst(!validatorsFirst)}
-                title="When enabled, validators are always shown at the top regardless of sort column"
-                className={`px-2 py-1 text-[10px] ${
-                  validatorsFirst
-                    ? 'bg-[var(--bb-magenta)] text-black'
-                    : 'bg-[var(--bb-panel-bg)] text-[var(--bb-gray)]'
-                }`}
-              >
-                {validatorsFirst ? '✓ ' : ''}VALIDATORS FIRST
-              </button>
+            <div className="bb-panel-header dark">
+              Node Explorer
+              <span className="text-[var(--bb-gray)] font-normal ml-2">
+                ({commandInput ? `${filteredAndSortedNodes.length}/` : ''}{nodes?.length ?? 0})
+              </span>
             </div>
             <div className="bb-panel-body no-padding flex-1 overflow-auto">
               <table className="bb-table">
                 <thead>
                   <tr>
                     <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>
-                      Node ID {sortColumn === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
+                      Node ID {getNodeSortIndicator()}
                     </th>
                     <th onClick={() => handleSort('peers')} style={{ cursor: 'pointer' }}>
                       Peers {sortColumn === 'peers' && (sortDirection === 'asc' ? '▲' : '▼')}

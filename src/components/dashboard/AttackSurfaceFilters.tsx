@@ -1,18 +1,16 @@
 'use client';
 
 import { RISK_FILTER_TOOLTIPS } from '@/lib/attack-surface';
-import type { AttackSurfaceStats, FilterMode, RiskFilter, SortColumn } from '@/lib/attack-surface';
+import type { AttackSurfaceStats, FilterMode, RiskFilter } from '@/lib/attack-surface';
 
 interface AttackSurfaceFiltersProps {
   stats: AttackSurfaceStats;
   filterMode: FilterMode;
   riskFilter: RiskFilter;
   searchTerm: string;
-  validatorsFirst: boolean;
   onFilterModeChange: (mode: FilterMode) => void;
   onRiskFilterChange: (risk: RiskFilter) => void;
   onSearchTermChange: (term: string) => void;
-  onToggleValidatorsFirst: () => void;
 }
 
 const FILTER_MODES: { mode: FilterMode; label: string; activeColor: string }[] = [
@@ -39,11 +37,9 @@ export function AttackSurfaceFilters({
   filterMode,
   riskFilter,
   searchTerm,
-  validatorsFirst,
   onFilterModeChange,
   onRiskFilterChange,
   onSearchTermChange,
-  onToggleValidatorsFirst,
 }: AttackSurfaceFiltersProps) {
   const getFilterCount = (mode: FilterMode): number => {
     switch (mode) {
@@ -96,19 +92,6 @@ export function AttackSurfaceFilters({
           </button>
         ))}
       </div>
-
-      {/* Validator-first toggle */}
-      <button
-        onClick={onToggleValidatorsFirst}
-        title="When enabled, validators are always shown at the top regardless of sort column"
-        className={`ml-4 px-2 py-1 text-xs ${
-          validatorsFirst
-            ? 'bg-[var(--bb-magenta)] text-black'
-            : 'bg-[var(--bb-panel-bg)] text-[var(--bb-gray)]'
-        }`}
-      >
-        {validatorsFirst ? '✓ ' : ''}VALIDATORS FIRST
-      </button>
 
       {/* Search */}
       <input

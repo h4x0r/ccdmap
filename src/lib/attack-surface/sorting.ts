@@ -5,7 +5,7 @@
  */
 
 import { getRiskSortValue } from './risk-assessment';
-import type { AttackSurfaceNode, SortOptions } from './types';
+import type { AttackSurfaceNode, SortOptions, NodeSortStage } from './types';
 
 /**
  * Compare two IP addresses numerically.
@@ -50,14 +50,13 @@ export function sortAttackSurfaceNodes(
   nodes: AttackSurfaceNode[],
   options: SortOptions
 ): AttackSurfaceNode[] {
-  const { column, direction, validatorsFirst = false } = options;
+  const { column, direction, nodeSortStage = 1 } = options;
   const dirMultiplier = direction === 'asc' ? 1 : -1;
 
   return [...nodes].sort((a, b) => {
-    // If validatorsFirst is enabled, always sort validators to the top
-    if (validatorsFirst) {
-      if (a.isValidator && !b.isValidator) return -1;
-      if (!a.isValidator && b.isValidator) return 1;
+    // Special handling for node column with 4-stage cycle
+    if (column === 'node') {
+      return sortByNodeStage(a, b, nodeSortStage);
     }
 
     let comparison = 0;
@@ -65,10 +64,6 @@ export function sortAttackSurfaceNodes(
     switch (column) {
       case 'risk':
         comparison = getRiskSortValue(a.riskLevel) - getRiskSortValue(b.riskLevel);
-        break;
-
-      case 'node':
-        comparison = a.nodeName.localeCompare(b.nodeName);
         break;
 
       case 'ip':
@@ -82,6 +77,48 @@ export function sortAttackSurfaceNodes(
 
     return comparison * dirMultiplier;
   });
+}
+
+/**
+ * Sort nodes by name with 4-stage cycle.
+ *
+ * Stage 1: All A-Z
+ * Stage 2: All Z-A
+ * Stage 3: Validators first (A-Z), then rest (A-Z)
+ * Stage 4: Validators first (Z-A), then rest (Z-A)
+ */
+function sortByNodeStage(a: AttackSurfaceNode, b: AttackSurfaceNode, stage: NodeSortStage): number {
+  const validatorsFirst = stage === 3 || stage === 4;
+  const descending = stage === 2 || stage === 4;
+
+  // If validators first, sort validators to top
+  if (validatorsFirst) {
+    if (a.isValidator && !b.isValidator) return -1;
+    if (!a.isValidator && b.isValidator) return 1;
+  }
+
+  // Then sort alphabetically
+  const comparison = a.nodeName.localeCompare(b.nodeName);
+  return descending ? -comparison : comparison;
+}
+
+/**
+ * Get sort indicator for node column based on stage.
+ */
+export function getNodeSortIndicator(stage: NodeSortStage): string {
+  switch (stage) {
+    case 1: return '▲';      // A-Z
+    case 2: return '▼';      // Z-A
+    case 3: return '✓▲';     // Validators first, A-Z
+    case 4: return '✓▼';     // Validators first, Z-A
+  }
+}
+
+/**
+ * Get next node sort stage in the cycle.
+ */
+export function getNextNodeSortStage(current: NodeSortStage): NodeSortStage {
+  return ((current % 4) + 1) as NodeSortStage;
 }
 
 /**

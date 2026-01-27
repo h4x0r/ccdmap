@@ -25,6 +25,7 @@ export type {
   SortOptions,
   SortColumn,
   SortDirection,
+  NodeSortStage,
   FilterMode,
   RiskFilter,
   AttackSurfaceStats,
@@ -48,4 +49,6 @@ export {
   compareIpAddresses,
   sortAttackSurfaceNodes,
   filterAttackSurfaceNodes,
+  getNodeSortIndicator,
+  getNextNodeSortStage,
 } from './sorting';

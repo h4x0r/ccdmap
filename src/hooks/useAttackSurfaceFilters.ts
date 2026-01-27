@@ -6,7 +6,8 @@
  */
 
 import { create } from 'zustand';
-import type { FilterMode, RiskFilter, SortColumn, SortDirection } from '@/lib/attack-surface';
+import type { FilterMode, RiskFilter, SortColumn, SortDirection, NodeSortStage } from '@/lib/attack-surface';
+import { getNextNodeSortStage } from '@/lib/attack-surface';
 
 interface AttackSurfaceFiltersState {
   // Filter state
@@ -17,14 +18,13 @@ interface AttackSurfaceFiltersState {
   // Sort state
   sortColumn: SortColumn;
   sortDirection: SortDirection;
-  validatorsFirst: boolean;
+  nodeSortStage: NodeSortStage;
 
   // Actions
   setFilterMode: (mode: FilterMode) => void;
   setRiskFilter: (risk: RiskFilter) => void;
   setSearchTerm: (term: string) => void;
   toggleSort: (column: SortColumn) => void;
-  toggleValidatorsFirst: () => void;
   resetFilters: () => void;
 }
 
@@ -34,7 +34,7 @@ const initialState = {
   searchTerm: '',
   sortColumn: 'risk' as SortColumn,
   sortDirection: 'desc' as SortDirection,
-  validatorsFirst: false,
+  nodeSortStage: 1 as NodeSortStage,
 };
 
 export const useAttackSurfaceFilters = create<AttackSurfaceFiltersState>((set) => ({
@@ -48,8 +48,23 @@ export const useAttackSurfaceFilters = create<AttackSurfaceFiltersState>((set) =
 
   toggleSort: (column) =>
     set((state) => {
+      // Special handling for node column: cycle through 4 stages
+      if (column === 'node') {
+        if (state.sortColumn === 'node') {
+          // Already on node column, advance to next stage
+          return {
+            nodeSortStage: getNextNodeSortStage(state.nodeSortStage),
+          };
+        }
+        // Switching to node column, start at stage 1
+        return {
+          sortColumn: 'node',
+          nodeSortStage: 1 as NodeSortStage,
+        };
+      }
+
+      // For other columns: normal asc/desc toggle
       if (state.sortColumn === column) {
-        // Toggle direction if same column
         return {
           sortDirection: state.sortDirection === 'asc' ? 'desc' : 'asc',
         };
@@ -60,11 +75,6 @@ export const useAttackSurfaceFilters = create<AttackSurfaceFiltersState>((set) =
         sortDirection: 'asc',
       };
     }),
-
-  toggleValidatorsFirst: () =>
-    set((state) => ({
-      validatorsFirst: !state.validatorsFirst,
-    })),
 
   resetFilters: () => set(initialState),
 }));

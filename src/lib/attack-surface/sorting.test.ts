@@ -173,8 +173,44 @@ describe('sortAttackSurfaceNodes', () => {
     });
   });
 
-  describe('validatorsFirst option', () => {
-    it('puts validators first when enabled', () => {
+  describe('nodeSortStage option (4-stage cycle)', () => {
+    it('stage 1: sorts all nodes A-Z', () => {
+      const nodes = [
+        createNode({ nodeId: '1', nodeName: 'Charlie', isValidator: false }),
+        createNode({ nodeId: '2', nodeName: 'Alpha', isValidator: true }),
+        createNode({ nodeId: '3', nodeName: 'Beta', isValidator: false }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'node',
+        direction: 'asc',
+        nodeSortStage: 1,
+      });
+
+      expect(sorted[0].nodeName).toBe('Alpha');
+      expect(sorted[1].nodeName).toBe('Beta');
+      expect(sorted[2].nodeName).toBe('Charlie');
+    });
+
+    it('stage 2: sorts all nodes Z-A', () => {
+      const nodes = [
+        createNode({ nodeId: '1', nodeName: 'Alpha', isValidator: true }),
+        createNode({ nodeId: '2', nodeName: 'Charlie', isValidator: false }),
+        createNode({ nodeId: '3', nodeName: 'Beta', isValidator: false }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'node',
+        direction: 'asc',
+        nodeSortStage: 2,
+      });
+
+      expect(sorted[0].nodeName).toBe('Charlie');
+      expect(sorted[1].nodeName).toBe('Beta');
+      expect(sorted[2].nodeName).toBe('Alpha');
+    });
+
+    it('stage 3: validators first (A-Z), then rest (A-Z)', () => {
       const nodes = [
         createNode({ nodeId: '1', nodeName: 'Alpha', isValidator: false }),
         createNode({ nodeId: '2', nodeName: 'Beta', isValidator: true }),
@@ -185,28 +221,49 @@ describe('sortAttackSurfaceNodes', () => {
       const sorted = sortAttackSurfaceNodes(nodes, {
         column: 'node',
         direction: 'asc',
-        validatorsFirst: true,
+        nodeSortStage: 3,
       });
 
-      // Validators first, then sorted by name
+      // Validators first (sorted A-Z), then rest (sorted A-Z)
       expect(sorted[0].nodeName).toBe('Beta');
       expect(sorted[1].nodeName).toBe('Delta');
       expect(sorted[2].nodeName).toBe('Alpha');
       expect(sorted[3].nodeName).toBe('Charlie');
     });
 
-    it('maintains normal sorting when validatorsFirst is false', () => {
+    it('stage 4: validators first (Z-A), then rest (Z-A)', () => {
       const nodes = [
         createNode({ nodeId: '1', nodeName: 'Alpha', isValidator: false }),
         createNode({ nodeId: '2', nodeName: 'Beta', isValidator: true }),
+        createNode({ nodeId: '3', nodeName: 'Charlie', isValidator: false }),
+        createNode({ nodeId: '4', nodeName: 'Delta', isValidator: true }),
       ];
 
       const sorted = sortAttackSurfaceNodes(nodes, {
         column: 'node',
         direction: 'asc',
-        validatorsFirst: false,
+        nodeSortStage: 4,
       });
 
+      // Validators first (sorted Z-A), then rest (sorted Z-A)
+      expect(sorted[0].nodeName).toBe('Delta');
+      expect(sorted[1].nodeName).toBe('Beta');
+      expect(sorted[2].nodeName).toBe('Charlie');
+      expect(sorted[3].nodeName).toBe('Alpha');
+    });
+
+    it('defaults to stage 1 when nodeSortStage not provided', () => {
+      const nodes = [
+        createNode({ nodeId: '1', nodeName: 'Beta', isValidator: true }),
+        createNode({ nodeId: '2', nodeName: 'Alpha', isValidator: false }),
+      ];
+
+      const sorted = sortAttackSurfaceNodes(nodes, {
+        column: 'node',
+        direction: 'asc',
+      });
+
+      // Without nodeSortStage, should sort all A-Z (stage 1 default)
       expect(sorted[0].nodeName).toBe('Alpha');
       expect(sorted[1].nodeName).toBe('Beta');
     });
