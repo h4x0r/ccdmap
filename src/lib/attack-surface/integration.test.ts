@@ -9,7 +9,8 @@ import { describe, it, expect } from 'vitest';
 import { assessRisk, formatRiskTooltip } from './risk-assessment';
 import { categorizePorts } from './port-categories';
 import { filterAttackSurfaceNodes, sortAttackSurfaceNodes } from './sorting';
-import type { AttackSurfaceNode, RiskLevel } from './types';
+import { calculateStats } from './stats';
+import type { AttackSurfaceNode } from './types';
 
 /**
  * Helper to create a node from raw data, simulating what useAttackSurface does
@@ -51,6 +52,7 @@ function createNodeFromRawData(input: {
     hasGrpcOther: portCats.grpcOther,
     hasOtherPorts: portCats.otherPorts,
     riskLevel: riskResult.level,
+    riskReasons: riskResult.reasons, // Cache reasons for tooltip display
   };
 }
 
@@ -385,6 +387,73 @@ describe('Full Data Pipeline Integration', () => {
 
       expect(tooltip).toContain('UNKNOWN');
       expect(tooltip).toContain('No IP');
+    });
+
+    it('uses cached riskReasons from node instead of recalculating', () => {
+      const node = createNodeFromRawData({
+        nodeId: 'test',
+        nodeName: 'Test Node',
+        isValidator: true,
+        ipAddress: '10.0.0.1',
+        port: 8888,
+        osintPorts: [8888],
+        osintVulns: ['CVE-1'],
+        osintReputation: 'clean',
+        osintTags: [],
+        osintLastScan: new Date(),
+      });
+
+      // Node should have cached reasons
+      expect(node.riskReasons).toBeDefined();
+      expect(node.riskReasons.length).toBeGreaterThan(0);
+
+      // Can format tooltip from cached reasons without recalculating
+      const tooltip = `${node.riskLevel.toUpperCase()}: ${node.riskReasons.join(' • ')}`;
+      expect(tooltip).toContain('HIGH');
+    });
+  });
+
+  describe('single-pass stats calculation', () => {
+    it('calculates stats in one pass matching individual filters', () => {
+      const testNodes: AttackSurfaceNode[] = [
+        createNodeFromRawData({
+          nodeId: 'v1',
+          nodeName: 'Validator One',
+          isValidator: true,
+          ipAddress: '10.0.0.1',
+          port: 8888,
+          osintPorts: [8888, 20000],
+          osintVulns: ['CVE-1'],
+          osintReputation: 'clean',
+          osintTags: [],
+          osintLastScan: new Date(),
+        }),
+        createNodeFromRawData({
+          nodeId: 'n1',
+          nodeName: 'Node One',
+          isValidator: false,
+          ipAddress: null,
+          port: null,
+          osintPorts: [],
+          osintVulns: [],
+          osintReputation: 'unknown',
+          osintTags: [],
+          osintLastScan: null,
+        }),
+      ];
+
+      const stats = calculateStats(testNodes);
+
+      // Verify counts match what individual filters would return
+      expect(stats.total).toBe(2);
+      expect(stats.withIp).toBe(1);
+      expect(stats.withoutIp).toBe(1);
+      expect(stats.validators).toBe(1);
+      expect(stats.validatorsWithIp).toBe(1);
+      expect(stats.riskLevels.high).toBe(1);
+      expect(stats.riskLevels.unknown).toBe(1);
+      expect(stats.portExposure.peering).toBe(1);
+      expect(stats.portExposure.grpcDefault).toBe(1);
     });
   });
 });

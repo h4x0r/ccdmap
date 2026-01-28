@@ -64,8 +64,9 @@ export interface AttackSurfaceNode {
   hasGrpcOther: number[];
   hasOtherPorts: number[];
 
-  // Risk assessment
+  // Risk assessment (cached to avoid recalculation)
   riskLevel: RiskLevel;
+  riskReasons: string[];
 }
 
 /**

@@ -1,6 +1,10 @@
 'use client';
 
-import { RISK_FILTER_TOOLTIPS } from '@/lib/attack-surface';
+import {
+  RISK_FILTER_TOOLTIPS,
+  FILTER_MODE_CONFIG,
+  RISK_FILTER_CONFIG,
+} from '@/lib/attack-surface';
 import type { AttackSurfaceStats, FilterMode, RiskFilter } from '@/lib/attack-surface';
 
 interface AttackSurfaceFiltersProps {
@@ -12,22 +16,6 @@ interface AttackSurfaceFiltersProps {
   onRiskFilterChange: (risk: RiskFilter) => void;
   onSearchTermChange: (term: string) => void;
 }
-
-const FILTER_MODES: { mode: FilterMode; label: string; activeColor: string }[] = [
-  { mode: 'all', label: 'ALL', activeColor: 'bg-[var(--bb-cyan)]' },
-  { mode: 'validators', label: 'VALIDATORS', activeColor: 'bg-[var(--bb-magenta)]' },
-  { mode: 'withIp', label: 'WITH IP', activeColor: 'bg-[var(--bb-cyan)]' },
-  { mode: 'withoutIp', label: 'NO IP', activeColor: 'bg-[var(--bb-amber)]' },
-];
-
-const RISK_FILTERS: { risk: RiskFilter; activeColor: string }[] = [
-  { risk: 'all', activeColor: 'bg-[var(--bb-cyan)]' },
-  { risk: 'critical', activeColor: 'bg-[var(--bb-red)]' },
-  { risk: 'high', activeColor: 'bg-[var(--bb-amber)]' },
-  { risk: 'medium', activeColor: 'bg-[var(--bb-amber)]' },
-  { risk: 'low', activeColor: 'bg-[var(--bb-green)]' },
-  { risk: 'unknown', activeColor: 'bg-[var(--bb-cyan)]' },
-];
 
 /**
  * Filter controls for the attack surface view
@@ -59,7 +47,7 @@ export function AttackSurfaceFilters({
       {/* Mode filter */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-[var(--bb-gray)]">FILTER:</span>
-        {FILTER_MODES.map(({ mode, label, activeColor }) => (
+        {FILTER_MODE_CONFIG.map(({ mode, label, activeColor }) => (
           <button
             key={mode}
             onClick={() => onFilterModeChange(mode)}
@@ -77,7 +65,7 @@ export function AttackSurfaceFilters({
       {/* Risk filter */}
       <div className="flex items-center gap-2 ml-4">
         <span className="text-xs text-[var(--bb-gray)]">RISK:</span>
-        {RISK_FILTERS.map(({ risk, activeColor }) => (
+        {RISK_FILTER_CONFIG.map(({ risk, activeColor }) => (
           <button
             key={risk}
             onClick={() => onRiskFilterChange(risk)}

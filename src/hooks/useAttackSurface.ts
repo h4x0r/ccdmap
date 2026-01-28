@@ -13,10 +13,10 @@ import type { OsintFullResponse } from '@/app/api/osint/route';
 import {
   assessRisk,
   categorizePorts,
+  calculateStats,
   type AttackSurfaceNode,
   type AttackSurfaceStats,
   type OsintReputation,
-  type RiskLevel,
 } from '@/lib/attack-surface';
 
 /**
@@ -150,45 +150,17 @@ export function useAttackSurface(): UseAttackSurfaceResult {
         hasGrpcOther: portCategories.grpcOther,
         hasOtherPorts: portCategories.otherPorts,
         riskLevel: riskResult.level,
+        riskReasons: riskResult.reasons, // Cache reasons to avoid recalculation
       };
     });
   }, [nodes, peerMap, osintData]);
 
-  // Calculate statistics
-  const stats = useMemo<AttackSurfaceStats>(() => {
-    const total = attackSurfaceNodes.length;
-    const withIp = attackSurfaceNodes.filter((n) => n.ipAddress !== null).length;
-    const withoutIp = total - withIp;
-
-    const validators = attackSurfaceNodes.filter((n) => n.isValidator).length;
-    const validatorsWithIp = attackSurfaceNodes.filter(
-      (n) => n.isValidator && n.ipAddress !== null
-    ).length;
-
-    const riskLevels: Record<RiskLevel, number> = {
-      critical: attackSurfaceNodes.filter((n) => n.riskLevel === 'critical').length,
-      high: attackSurfaceNodes.filter((n) => n.riskLevel === 'high').length,
-      medium: attackSurfaceNodes.filter((n) => n.riskLevel === 'medium').length,
-      low: attackSurfaceNodes.filter((n) => n.riskLevel === 'low').length,
-      unknown: attackSurfaceNodes.filter((n) => n.riskLevel === 'unknown').length,
-    };
-
-    const portExposure = {
-      peering: attackSurfaceNodes.filter((n) => n.hasPeeringPort).length,
-      grpcDefault: attackSurfaceNodes.filter((n) => n.hasGrpcDefault).length,
-      grpcOther: attackSurfaceNodes.filter((n) => n.hasGrpcOther.length > 0).length,
-    };
-
-    return {
-      total,
-      withIp,
-      withoutIp,
-      validators,
-      validatorsWithIp,
-      riskLevels,
-      portExposure,
-    };
-  }, [attackSurfaceNodes]);
+  // Calculate statistics using single-pass pure function
+  // O(n) instead of O(9n) from multiple filter calls
+  const stats = useMemo<AttackSurfaceStats>(
+    () => calculateStats(attackSurfaceNodes),
+    [attackSurfaceNodes]
+  );
 
   // Function to get attack surface data for a specific node
   const getNodeAttackSurface = (nodeId: string): AttackSurfaceNode | null => {

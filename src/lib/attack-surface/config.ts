@@ -104,3 +104,41 @@ export function getKnownPorts(): number[] {
 export function getOtherGrpcPorts(): number[] {
   return PORT_CATEGORIES.GRPC_OTHER.map((p) => p.port);
 }
+
+/**
+ * Filter mode configurations for UI
+ */
+export const FILTER_MODE_CONFIG = [
+  { mode: 'all' as const, label: 'ALL', activeColor: 'bg-[var(--bb-cyan)]' },
+  { mode: 'validators' as const, label: 'VALIDATORS', activeColor: 'bg-[var(--bb-magenta)]' },
+  { mode: 'withIp' as const, label: 'WITH IP', activeColor: 'bg-[var(--bb-cyan)]' },
+  { mode: 'withoutIp' as const, label: 'NO IP', activeColor: 'bg-[var(--bb-amber)]' },
+] as const;
+
+/**
+ * Risk filter configurations for UI
+ */
+export const RISK_FILTER_CONFIG = [
+  { risk: 'all' as const, activeColor: 'bg-[var(--bb-cyan)]' },
+  { risk: 'critical' as const, activeColor: 'bg-[var(--bb-red)]' },
+  { risk: 'high' as const, activeColor: 'bg-[var(--bb-amber)]' },
+  { risk: 'medium' as const, activeColor: 'bg-[var(--bb-amber)]' },
+  { risk: 'low' as const, activeColor: 'bg-[var(--bb-green)]' },
+  { risk: 'unknown' as const, activeColor: 'bg-[var(--bb-cyan)]' },
+] as const;
+
+/**
+ * CSS variable names for consistent theming
+ */
+export const THEME_VARS = {
+  cyan: 'var(--bb-cyan)',
+  amber: 'var(--bb-amber)',
+  red: 'var(--bb-red)',
+  green: 'var(--bb-green)',
+  gray: 'var(--bb-gray)',
+  magenta: 'var(--bb-magenta)',
+  black: 'var(--bb-black)',
+  text: 'var(--bb-text)',
+  border: 'var(--bb-border)',
+  panelBg: 'var(--bb-panel-bg)',
+} as const;

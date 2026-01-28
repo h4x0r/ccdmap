@@ -1,9 +1,6 @@
 'use client';
 
 import {
-  RISK_LEVELS,
-  assessRisk,
-  formatRiskTooltip,
   getPortLegend,
   getNodeSortIndicator,
   type AttackSurfaceNode,
@@ -11,6 +8,7 @@ import {
   type SortDirection,
   type NodeSortStage,
 } from '@/lib/attack-surface';
+import { AttackSurfaceTableRow } from './AttackSurfaceTableRow';
 
 interface AttackSurfaceTableProps {
   nodes: AttackSurfaceNode[];
@@ -19,20 +17,6 @@ interface AttackSurfaceTableProps {
   nodeSortStage: NodeSortStage;
   onSort: (column: SortColumn) => void;
   onNodeSelect: (nodeId: string) => void;
-}
-
-/**
- * Get risk tooltip for a specific node
- */
-function getNodeRiskTooltip(node: AttackSurfaceNode): string {
-  const result = assessRisk({
-    osintPorts: node.osintPorts,
-    osintVulns: node.osintVulns,
-    osintReputation: node.osintReputation,
-    isValidator: node.isValidator,
-    ipAddress: node.ipAddress,
-  });
-  return formatRiskTooltip(result);
 }
 
 /**
@@ -90,71 +74,13 @@ export function AttackSurfaceTable({
             </tr>
           </thead>
           <tbody>
-            {nodes.map((node) => {
-              const riskConfig = RISK_LEVELS[node.riskLevel];
-
-              return (
-                <tr
-                  key={node.nodeId}
-                  onClick={() => onNodeSelect(node.nodeId)}
-                  className="cursor-pointer hover:bg-[var(--bb-panel-bg)]"
-                >
-                  <td style={{ color: riskConfig.color }} title={getNodeRiskTooltip(node)}>
-                    {riskConfig.emoji}
-                  </td>
-                  <td>
-                    {node.isValidator && (
-                      <span className="bb-validator-icon mr-1" title="Validator">
-                        ✓
-                      </span>
-                    )}
-                    <span className="text-[var(--bb-cyan)]">{node.nodeName}</span>
-                  </td>
-                  <td className="font-mono text-xs">
-                    {node.ipAddress ? (
-                      <span className="text-[var(--bb-text)]">{node.ipAddress}</span>
-                    ) : (
-                      <span className="text-[var(--bb-gray)] italic">No IP</span>
-                    )}
-                  </td>
-                  <td className="text-center">
-                    {node.hasPeeringPort ? (
-                      <span className="text-[var(--bb-cyan)]">✓</span>
-                    ) : (
-                      <span className="text-[var(--bb-gray)]">-</span>
-                    )}
-                  </td>
-                  <td className="text-center">
-                    {node.hasGrpcDefault ? (
-                      <span className="text-[var(--bb-cyan)]">✓</span>
-                    ) : (
-                      <span className="text-[var(--bb-gray)]">-</span>
-                    )}
-                  </td>
-                  <td className="text-center">
-                    {node.hasGrpcOther.length > 0 ? (
-                      <span className="text-[var(--bb-cyan)]">{node.hasGrpcOther.join(',')}</span>
-                    ) : (
-                      <span className="text-[var(--bb-gray)]">-</span>
-                    )}
-                  </td>
-                  <td className="text-center">
-                    {node.hasOtherPorts.length > 0 ? (
-                      <span className="text-[var(--bb-amber)]">{node.hasOtherPorts.length}</span>
-                    ) : (
-                      <span className="text-[var(--bb-gray)]">-</span>
-                    )}
-                  </td>
-                  <td className="text-center">
-                    {node.osintVulns.length > 0 ? (
-                      <span className="text-[var(--bb-red)]">{node.osintVulns.length}</span>
-                    ) : (
-                      <span className="text-[var(--bb-gray)]">-</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {nodes.map((node) => (
+              <AttackSurfaceTableRow
+                key={node.nodeId}
+                node={node}
+                onSelect={onNodeSelect}
+              />
+            ))}
           </tbody>
         </table>
 

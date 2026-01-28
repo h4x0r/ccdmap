@@ -10,9 +10,15 @@ export {
   RISK_LEVELS,
   PORT_CATEGORIES,
   RISK_FILTER_TOOLTIPS,
+  FILTER_MODE_CONFIG,
+  RISK_FILTER_CONFIG,
+  THEME_VARS,
   getKnownPorts,
   getOtherGrpcPorts,
 } from './config';
+
+// Stats exports
+export { calculateStats, emptyStats } from './stats';
 
 // Type exports
 export type {

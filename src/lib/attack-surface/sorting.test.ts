@@ -67,6 +67,7 @@ describe('sortAttackSurfaceNodes', () => {
     hasGrpcOther: [],
     hasOtherPorts: [],
     riskLevel: 'low',
+    riskReasons: ['Clean reputation, few exposed ports'],
     ...overrides,
   });
 
@@ -449,6 +450,7 @@ describe('filterAttackSurfaceNodes', () => {
     hasGrpcOther: [],
     hasOtherPorts: [],
     riskLevel: 'low',
+    riskReasons: ['Clean reputation, few exposed ports'],
     ...overrides,
   });
 
